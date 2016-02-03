@@ -1,6 +1,7 @@
 package com.ithinkrok.msm.bukkit;
 
 import com.google.common.net.HostAndPort;
+import com.ithinkrok.msm.common.MSMChannel;
 import com.ithinkrok.msm.common.Packet;
 import com.ithinkrok.msm.common.handler.MSMFrameDecoder;
 import com.ithinkrok.msm.common.handler.MSMFrameEncoder;
@@ -11,22 +12,45 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by paul on 01/02/16.
  */
 public class MSMClient extends ChannelInboundHandlerAdapter {
 
-    private final HostAndPort address;
+    private static boolean started = false;
+    private static Map<String, MSMClientListener> preStartListenerMap = new HashMap<>();
 
+    private final HostAndPort address;
     private volatile Channel channel;
+
+    private final Map<String, MSMClientListener> listenerMap = new HashMap<>();
+    private final Map<String, MSMChannel> channelMap = new HashMap<>();
+
+    private final Map<Byte, String> idToProtocolMap = new HashMap<>();
 
     public MSMClient(HostAndPort address) {
         this.address = address;
     }
 
+    public static void addProtocol(String protocolName, MSMClientListener protocolListener) {
+        if(started) throw new RuntimeException("The MSMClient has already started");
+        preStartListenerMap.put(protocolName, protocolListener);
+    }
+
     public void start() {
+        started = true;
+
+        //Clear out the static map to prevent objects from being kept alive due to being kept in this
+        listenerMap.putAll(preStartListenerMap);
+        preStartListenerMap.clear();
+
         System.out.println("Connecting to MSM server: " + address);
 
         EventLoopGroup workerGroup = createNioEventLoopGroup();
@@ -50,14 +74,6 @@ public class MSMClient extends ChannelInboundHandlerAdapter {
         future.channel().closeFuture().addListener(unused2 -> workerGroup.shutdownGracefully());
     }
 
-    void startRequest() {
-        System.out.println("Connected successfully and sending test packet");
-
-        Packet test = new Packet((byte) 0, new MemoryConfiguration());
-
-        channel.writeAndFlush(test);
-    }
-
     NioEventLoopGroup createNioEventLoopGroup() {
         return new NioEventLoopGroup(1);
     }
@@ -78,6 +94,20 @@ public class MSMClient extends ChannelInboundHandlerAdapter {
         pipeline.addLast("MSMClient", this);
     }
 
+    void startRequest() {
+        System.out.println("Connected successfully and sending login packet");
+
+        MemoryConfiguration loginPayload = new MemoryConfiguration();
+
+        loginPayload.set("hostname", address.getHostText());
+        loginPayload.set("protocols", new ArrayList<>(listenerMap.keySet()));
+        loginPayload.set("version", 0);
+
+        Packet loginPacket = new Packet((byte) 0, loginPayload);
+
+        channel.writeAndFlush(loginPacket);
+    }
+
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
         channel = ctx.channel();
@@ -86,5 +116,19 @@ public class MSMClient extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         System.out.println(msg);
+    }
+
+    private class MSMClientChannel implements MSMChannel {
+
+        private final byte id;
+
+        public MSMClientChannel(byte id) {
+            this.id = id;
+        }
+
+        @Override
+        public void write(ConfigurationSection packet) {
+            channel.writeAndFlush(new Packet(id, packet));
+        }
     }
 }
