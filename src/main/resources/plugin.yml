@@ -1,0 +1,4 @@
+name: "MSMClient"
+version: "${project.version}"
+main: "com.ithinkrok.msm.bukkit.MSMPlugin"
+author: "ithinkrok"
