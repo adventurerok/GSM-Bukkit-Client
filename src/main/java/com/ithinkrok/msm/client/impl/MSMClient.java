@@ -19,6 +19,7 @@ import org.bukkit.configuration.MemoryConfiguration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -47,6 +48,16 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
     public static void addProtocol(String protocolName, ClientListener protocolListener) {
         if(started) throw new RuntimeException("The MSMClient has already started");
         preStartListenerMap.put(protocolName, protocolListener);
+    }
+
+    public void setSupportedProtocols(List<String> supportedProtocols) {
+        idToProtocolMap.clear();
+
+        byte counter = 0;
+
+        for(String protocol : supportedProtocols) {
+            idToProtocolMap.put(counter++, protocol);
+        }
     }
 
     public void start() {

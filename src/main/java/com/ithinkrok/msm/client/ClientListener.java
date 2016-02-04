@@ -8,5 +8,9 @@ import org.bukkit.configuration.ConfigurationSection;
  */
 public interface ClientListener {
 
+    void connectionOpened(Client client, Channel channel);
+
+    void connectionClosed(Client client, Channel channel);
+
     void packetRecieved(Client client, Channel channel, ConfigurationSection payload);
 }
