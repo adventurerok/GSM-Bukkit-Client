@@ -3,7 +3,7 @@ package com.ithinkrok.msm.client.impl;
 import com.google.common.net.HostAndPort;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.Client;
-import com.ithinkrok.msm.common.MSMChannel;
+import com.ithinkrok.msm.common.Channel;
 import com.ithinkrok.msm.common.Packet;
 import com.ithinkrok.msm.common.handler.MSMFrameDecoder;
 import com.ithinkrok.msm.common.handler.MSMFrameEncoder;
@@ -30,10 +30,10 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
     private static Map<String, ClientListener> preStartListenerMap = new HashMap<>();
 
     private final HostAndPort address;
-    private volatile Channel channel;
+    private volatile io.netty.channel.Channel channel;
 
     private final Map<String, ClientListener> listenerMap = new HashMap<>();
-    private final Map<String, MSMChannel> channelMap = new HashMap<>();
+    private final Map<String, Channel> channelMap = new HashMap<>();
 
     private final Map<Byte, String> idToProtocolMap = new HashMap<>();
 
@@ -123,7 +123,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
         System.out.println(msg);
     }
 
-    private class MSMClientChannel implements MSMChannel {
+    private class MSMClientChannel implements Channel {
 
         private final byte id;
 
