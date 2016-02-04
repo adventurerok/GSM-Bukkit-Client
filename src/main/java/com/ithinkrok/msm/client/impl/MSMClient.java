@@ -1,6 +1,8 @@
-package com.ithinkrok.msm.bukkit;
+package com.ithinkrok.msm.client.impl;
 
 import com.google.common.net.HostAndPort;
+import com.ithinkrok.msm.client.ClientListener;
+import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.common.MSMChannel;
 import com.ithinkrok.msm.common.Packet;
 import com.ithinkrok.msm.common.handler.MSMFrameDecoder;
@@ -22,15 +24,15 @@ import java.util.Map;
 /**
  * Created by paul on 01/02/16.
  */
-public class MSMClient extends ChannelInboundHandlerAdapter {
+public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
 
     private static boolean started = false;
-    private static Map<String, MSMClientListener> preStartListenerMap = new HashMap<>();
+    private static Map<String, ClientListener> preStartListenerMap = new HashMap<>();
 
     private final HostAndPort address;
     private volatile Channel channel;
 
-    private final Map<String, MSMClientListener> listenerMap = new HashMap<>();
+    private final Map<String, ClientListener> listenerMap = new HashMap<>();
     private final Map<String, MSMChannel> channelMap = new HashMap<>();
 
     private final Map<Byte, String> idToProtocolMap = new HashMap<>();
@@ -42,7 +44,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter {
         idToProtocolMap.put((byte) 0, "MSMLogin");
     }
 
-    public static void addProtocol(String protocolName, MSMClientListener protocolListener) {
+    public static void addProtocol(String protocolName, ClientListener protocolListener) {
         if(started) throw new RuntimeException("The MSMClient has already started");
         preStartListenerMap.put(protocolName, protocolListener);
     }

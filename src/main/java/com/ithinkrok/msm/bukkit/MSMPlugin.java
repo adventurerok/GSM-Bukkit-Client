@@ -1,6 +1,8 @@
 package com.ithinkrok.msm.bukkit;
 
 import com.google.common.net.HostAndPort;
+import com.ithinkrok.msm.client.ClientListener;
+import com.ithinkrok.msm.client.impl.MSMClient;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -27,5 +29,9 @@ public class MSMPlugin extends JavaPlugin {
 
             client.start();
         });
+    }
+
+    public static void addProtocol(String protocolName, ClientListener protocolListener) {
+        MSMClient.addProtocol(protocolName, protocolListener);
     }
 }
