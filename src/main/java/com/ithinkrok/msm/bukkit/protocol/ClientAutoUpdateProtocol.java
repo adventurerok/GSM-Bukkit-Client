@@ -17,6 +17,8 @@ import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by paul on 04/02/16.
@@ -24,6 +26,8 @@ import java.util.List;
 public class ClientAutoUpdateProtocol implements ClientListener {
 
     private final Path pluginDirectory = Paths.get("plugins");
+
+    private final Map<String, Path> pluginNameToPathMap = new ConcurrentHashMap<>();
 
     private final Plugin plugin;
 
@@ -48,6 +52,8 @@ public class ClientAutoUpdateProtocol implements ClientListener {
                 }
 
                 payload.set("plugins", pluginInfoList);
+
+                //Mode = "PluginInfo", send info about all available plugins
                 payload.set("mode", "PluginInfo");
 
                 channel.write(payload);
@@ -66,6 +72,37 @@ public class ClientAutoUpdateProtocol implements ClientListener {
     @Override
     public void packetRecieved(Client client, Channel channel, ConfigurationSection payload) {
 
+        String mode = payload.getString("mode");
+        if(mode == null) return;
+
+        switch(mode) {
+            case "PluginInstall":
+                handlePluginInstall(payload);
+                break;
+        }
+    }
+
+    private void handlePluginInstall(ConfigurationSection payload) {
+        String name = payload.getString("name");
+
+        byte[] updateBytes = (byte[]) payload.get("bytes");
+
+        Path oldPath = pluginNameToPathMap.get(name);
+        Path savePath;
+
+        if(oldPath != null) {
+            savePath = pluginDirectory.resolve(name).resolve(oldPath.getFileName());
+        } else savePath = pluginDirectory.resolve(name + ".jar");
+
+        try {
+            Files.write(savePath, updateBytes);
+        } catch (IOException e) {
+            System.out.println("Error while saving plugin update for plugin: " + name);
+            e.printStackTrace();
+        }
+
+        //TODO flag for restart
+        //TODO Server side
     }
 
     private ConfigurationSection loadPluginInfo(Path pluginPath) throws IOException, InvalidConfigurationException {
@@ -87,6 +124,9 @@ public class ClientAutoUpdateProtocol implements ClientListener {
             if (name == null) return null;
 
             result.set("name", name);
+
+            //Put the plugin name -> path combination in the lookup.
+            pluginNameToPathMap.put(name, pluginPath);
 
             if (pluginYml.contains("version")) result.set("version", pluginYml.getString("version"));
         }
