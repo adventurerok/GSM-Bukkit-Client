@@ -5,6 +5,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.net.HostAndPort;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.Client;
+import com.ithinkrok.msm.client.protocol.ClientLoginProtocol;
 import com.ithinkrok.msm.common.Channel;
 import com.ithinkrok.msm.common.Packet;
 import com.ithinkrok.msm.common.handler.MSMFrameDecoder;
@@ -74,6 +75,9 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
 
     public void start() {
         started = true;
+
+        //Add default protocols
+        listenerMap.put("MSMLogin", new ClientLoginProtocol());
 
         //Clear out the static map to prevent objects from being kept alive due to being kept in this
         listenerMap.putAll(preStartListenerMap);
