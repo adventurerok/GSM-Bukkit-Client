@@ -37,6 +37,9 @@ public class MSMClient extends ChannelInboundHandlerAdapter {
 
     public MSMClient(HostAndPort address) {
         this.address = address;
+
+        //Add the MSMLogin protocol to the protocol map to make logins work
+        idToProtocolMap.put((byte) 0, "MSMLogin");
     }
 
     public static void addProtocol(String protocolName, MSMClientListener protocolListener) {
