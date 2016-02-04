@@ -28,5 +28,13 @@ public class ClientLoginProtocol implements ClientListener {
         List<String> sharedProtocols = payload.getStringList("protocols");
 
         ((MSMClient)client).setSupportedProtocols(sharedProtocols);
+
+        for(String protocol : sharedProtocols) {
+            ClientListener listener = ((MSMClient) client).getListenerForProtocol(protocol);
+
+            Channel otherChannel = client.getChannel(protocol);
+
+            listener.connectionOpened(client, otherChannel);
+        }
     }
 }

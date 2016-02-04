@@ -1,5 +1,7 @@
 package com.ithinkrok.msm.client.impl;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.net.HostAndPort;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.Client;
@@ -33,7 +35,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
     private final Map<String, ClientListener> listenerMap = new HashMap<>();
 
     private final Map<Byte, MSMClientChannel> channelMap = new HashMap<>();
-    private final Map<Byte, String> idToProtocolMap = new HashMap<>();
+    private final BiMap<Byte, String> idToProtocolMap = HashBiMap.create();
 
     public MSMClient(HostAndPort address) {
         this.address = address;
@@ -55,6 +57,15 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
         for(String protocol : supportedProtocols) {
             idToProtocolMap.put(counter++, protocol);
         }
+    }
+
+    public ClientListener getListenerForProtocol(String protocol) {
+        return listenerMap.get(protocol);
+    }
+
+    @Override
+    public Channel getChannel(String protocol) {
+        return channelMap.get(idToProtocolMap.inverse().get(protocol));
     }
 
     public Collection<String> getSupportedProtocols() {
