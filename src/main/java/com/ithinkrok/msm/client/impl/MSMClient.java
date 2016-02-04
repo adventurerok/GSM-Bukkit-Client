@@ -17,10 +17,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by paul on 01/02/16.
@@ -58,6 +55,10 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
         for(String protocol : supportedProtocols) {
             idToProtocolMap.put(counter++, protocol);
         }
+    }
+
+    public Collection<String> getSupportedProtocols() {
+        return idToProtocolMap.values();
     }
 
     public void start() {
