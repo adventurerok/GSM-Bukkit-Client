@@ -27,14 +27,14 @@ import java.util.Map;
 public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
 
     private static boolean started = false;
-    private static Map<String, ClientListener> preStartListenerMap = new HashMap<>();
+    private static final Map<String, ClientListener> preStartListenerMap = new HashMap<>();
 
     private final HostAndPort address;
     private volatile io.netty.channel.Channel channel;
 
     private final Map<String, ClientListener> listenerMap = new HashMap<>();
-    private final Map<String, Channel> channelMap = new HashMap<>();
 
+    private final Map<Byte, MSMClientChannel> channelMap = new HashMap<>();
     private final Map<Byte, String> idToProtocolMap = new HashMap<>();
 
     public MSMClient(HostAndPort address) {
@@ -120,7 +120,30 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        System.out.println(msg);
+        //Pass on Objects that are not Packets to the next handler
+        if(!Packet.class.isInstance(msg)) {
+            super.channelRead(ctx, msg);
+            return;
+        }
+
+        Packet packet = (Packet) msg;
+        String protocol = idToProtocolMap.get(packet.getId());
+
+        MSMClientChannel channel = getChannel(packet.getId());
+
+        //Send the packet to the listener for the specified protocol
+        listenerMap.get(protocol).packetRecieved(this, channel, packet.getPayload());
+    }
+
+    private MSMClientChannel getChannel(byte id) {
+        MSMClientChannel channel = channelMap.get(id);
+
+        if (channel == null) {
+            channel = new MSMClientChannel(id);
+            channelMap.put(id, channel);
+        }
+
+        return channel;
     }
 
     private class MSMClientChannel implements Channel {
