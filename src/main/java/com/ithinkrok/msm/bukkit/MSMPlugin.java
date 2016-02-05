@@ -1,6 +1,7 @@
 package com.ithinkrok.msm.bukkit;
 
 import com.google.common.net.HostAndPort;
+import com.ithinkrok.msm.bukkit.protocol.ClientAutoUpdateProtocol;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.impl.MSMClient;
 import org.bukkit.configuration.ConfigurationSection;
@@ -15,6 +16,8 @@ public class MSMPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        addProtocol("MSMAutoUpdate", new ClientAutoUpdateProtocol(this));
+
         getServer().getScheduler().scheduleSyncDelayedTask(this, () -> {
             ConfigurationSection config = getConfig();
 
