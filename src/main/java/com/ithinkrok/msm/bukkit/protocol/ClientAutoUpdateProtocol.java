@@ -25,14 +25,19 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ClientAutoUpdateProtocol implements ClientListener {
 
-    private final Path pluginDirectory = Paths.get("plugins");
+    private final Path pluginDirectory;
 
     private final Map<String, Path> pluginNameToPathMap = new ConcurrentHashMap<>();
 
     private final Plugin plugin;
 
     public ClientAutoUpdateProtocol(Plugin plugin) {
+        this(plugin, Paths.get("plugins"));
+    }
+
+    public ClientAutoUpdateProtocol(Plugin plugin, Path pluginDirectory) {
         this.plugin = plugin;
+        this.pluginDirectory = pluginDirectory;
     }
 
     @Override
