@@ -98,14 +98,18 @@ public class ClientAutoUpdateProtocol implements ClientListener {
             savePath = pluginDirectory.resolve(name).resolve(oldPath.getFileName());
         } else savePath = pluginDirectory.resolve(name + ".jar");
 
+        //Whether the packet is the first of this file or not
+        boolean append = payload.getBoolean("append", false);
+
         try {
-            Files.write(savePath, updateBytes);
+            if(append) Files.write(savePath, updateBytes, StandardOpenOption.APPEND);
+            else Files.write(savePath, updateBytes);
         } catch (IOException e) {
             System.out.println("Error while saving plugin update for plugin: " + name);
             e.printStackTrace();
         }
 
-        //TODO flag for restart
+        //TODO flag for restart (if the packet is the last one)
         //TODO Server side
     }
 
