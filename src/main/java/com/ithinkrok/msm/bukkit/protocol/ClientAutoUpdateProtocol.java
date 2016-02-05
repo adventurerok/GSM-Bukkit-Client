@@ -101,6 +101,8 @@ public class ClientAutoUpdateProtocol implements ClientListener {
         //Whether the packet is the first of this file or not
         boolean append = payload.getBoolean("append", false);
 
+        if(!append) System.out.println("Updating plugin \"" + name + "\"");
+
         try {
             if(append) Files.write(savePath, updateBytes, StandardOpenOption.APPEND);
             else Files.write(savePath, updateBytes);
