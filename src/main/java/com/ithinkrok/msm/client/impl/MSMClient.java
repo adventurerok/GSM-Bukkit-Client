@@ -80,7 +80,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
         return idToProtocolMap.values();
     }
 
-    public void setSupportedProtocols(List<String> supportedProtocols) {
+    public void setSupportedProtocols(Iterable<String> supportedProtocols) {
         idToProtocolMap.clear();
 
         int counter = 0;
