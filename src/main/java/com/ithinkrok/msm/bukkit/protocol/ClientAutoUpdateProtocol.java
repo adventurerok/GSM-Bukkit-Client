@@ -105,7 +105,18 @@ public class ClientAutoUpdateProtocol implements ClientListener {
         Path savePath;
 
         if(oldPath != null) {
-            savePath = pluginDirectory.resolve(name).resolve(oldPath.getFileName());
+            Path updatesDirectory = pluginDirectory.resolve("update");
+            if(!Files.exists(updatesDirectory)) {
+                try {
+                    Files.createDirectory(updatesDirectory);
+                } catch (IOException e) {
+                    System.err.println("Failed to create \"plugins/updates\" directory");
+                    e.printStackTrace();
+                    return;
+                }
+            }
+
+            savePath = updatesDirectory.resolve(oldPath.getFileName());
         } else savePath = pluginDirectory.resolve(name + ".jar");
 
         //Whether the packet is the first of this file or not
