@@ -43,6 +43,8 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
 
     private boolean serverStopping = false;
 
+    private int connectFails = 0;
+
     private EventLoopGroup workerGroup = createNioEventLoopGroup();
 
     public MSMClient(HostAndPort address, MinecraftServerInfo serverInfo) {
@@ -113,8 +115,6 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
 
     public void start() {
         started = true;
-
-        System.out.println("Connecting to MSM server: " + address);
 
         Bootstrap b = createBootstrap();
         b.group(workerGroup);
@@ -201,6 +201,9 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
     @Override
     public void operationComplete(ChannelFuture future) throws Exception {
         if(future.isSuccess()) {
+            System.out.println("Connected to MSM server: " + address);
+            connectFails = 0;
+
             startRequest();
         } else {
             EventLoop loop = future.channel().eventLoop();
@@ -213,6 +216,8 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         for(String protocol : idToProtocolMap.values()) {
             getListenerForProtocol(protocol).connectionClosed(this);
         }
+
+        System.out.println("Lost connection, attempting reconnect");
 
         EventLoop loop = ctx.channel().eventLoop();
         reconnect(loop);
@@ -233,9 +238,13 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
 
         if(serverStopping) return;
 
-        System.out.println("Lost connection, attempting reconnect");
+        ++connectFails;
 
-        eventLoop.schedule(this::start, 5L, TimeUnit.SECONDS);
+        if((connectFails % 10) == 0) {
+            System.out.println("Failed to reconnect to MSM Server after " + connectFails + " attempts");
+        }
+
+        eventLoop.schedule(this::start, 15L, TimeUnit.SECONDS);
     }
 
     private class MSMClientChannel implements Channel {
