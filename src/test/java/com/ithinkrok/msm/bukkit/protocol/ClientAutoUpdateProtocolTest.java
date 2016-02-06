@@ -11,6 +11,7 @@ import org.bukkit.plugin.Plugin;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -27,7 +28,7 @@ import static org.fest.assertions.api.Assertions.assertThat;
 @RunWith(DataProviderRunner.class)
 public class ClientAutoUpdateProtocolTest {
 
-    @Mock
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     public Plugin mockPlugin;
 
     @Mock
