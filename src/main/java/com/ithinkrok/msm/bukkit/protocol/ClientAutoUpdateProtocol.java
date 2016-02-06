@@ -5,6 +5,7 @@ import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.common.Channel;
 import com.ithinkrok.msm.common.util.FIleUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.MemoryConfiguration;
@@ -75,21 +76,13 @@ public class ClientAutoUpdateProtocol implements ClientListener {
 
     }
 
-    public void scheduleRestart() {
-        plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
-            if(plugin.getServer().getOnlinePlayers().size() > 1) return;
-
-            plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), "restart");
-        }, 20, 1200);
-    }
-
     @Override
     public void packetRecieved(Client client, Channel channel, ConfigurationSection payload) {
 
         String mode = payload.getString("mode");
-        if(mode == null) return;
+        if (mode == null) return;
 
-        switch(mode) {
+        switch (mode) {
             case "PluginInstall":
                 handlePluginInstall(payload);
                 break;
@@ -104,9 +97,9 @@ public class ClientAutoUpdateProtocol implements ClientListener {
         Path oldPath = pluginNameToPathMap.get(name);
         Path savePath;
 
-        if(oldPath != null) {
+        if (oldPath != null) {
             Path updatesDirectory = pluginDirectory.resolve("update");
-            if(!Files.exists(updatesDirectory)) {
+            if (!Files.exists(updatesDirectory)) {
                 try {
                     Files.createDirectory(updatesDirectory);
                 } catch (IOException e) {
@@ -122,10 +115,10 @@ public class ClientAutoUpdateProtocol implements ClientListener {
         //Whether the packet is the first of this file or not
         boolean append = payload.getBoolean("append", false);
 
-        if(!append) System.out.println("Updating plugin \"" + name + "\"");
+        if (!append) System.out.println("Updating plugin \"" + name + "\"");
 
         try {
-            if(append) Files.write(savePath, updateBytes, StandardOpenOption.APPEND);
+            if (append) Files.write(savePath, updateBytes, StandardOpenOption.APPEND);
             else Files.write(savePath, updateBytes);
         } catch (IOException e) {
             System.out.println("Error while saving plugin update for plugin: " + name);
@@ -133,6 +126,22 @@ public class ClientAutoUpdateProtocol implements ClientListener {
         }
 
         scheduleRestart();
+    }
+
+    public void scheduleRestart() {
+        plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
+            if (plugin.getServer().getOnlinePlayers().size() > 1) return;
+
+            plugin.getServer()
+                    .broadcastMessage(ChatColor.RED.toString() + ChatColor.BOLD.toString() + "Server restarting now" +
+                            " for plugin" +
+                            " updates");
+
+            plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin,
+                    () -> plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), "restart"), 100);
+
+
+        }, 20, 1200);
     }
 
     private ConfigurationSection loadPluginInfo(Path pluginPath) throws IOException, InvalidConfigurationException {
