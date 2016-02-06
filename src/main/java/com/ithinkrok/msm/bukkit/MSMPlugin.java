@@ -3,7 +3,7 @@ package com.ithinkrok.msm.bukkit;
 import com.google.common.net.HostAndPort;
 import com.ithinkrok.msm.bukkit.protocol.ClientAutoUpdateProtocol;
 import com.ithinkrok.msm.client.ClientListener;
-import com.ithinkrok.msm.client.MinecraftServerInfo;
+import com.ithinkrok.msm.common.MinecraftServerInfo;
 import com.ithinkrok.msm.client.impl.MSMClient;
 import com.ithinkrok.msm.common.MinecraftServerType;
 import org.bukkit.Bukkit;

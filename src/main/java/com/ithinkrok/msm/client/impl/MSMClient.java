@@ -5,7 +5,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.net.HostAndPort;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.Client;
-import com.ithinkrok.msm.client.MinecraftServerInfo;
+import com.ithinkrok.msm.common.MinecraftServerInfo;
 import com.ithinkrok.msm.client.protocol.ClientLoginProtocol;
 import com.ithinkrok.msm.common.Channel;
 import com.ithinkrok.msm.common.Packet;
