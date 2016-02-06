@@ -15,6 +15,7 @@ import java.io.Reader;
 import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,7 +47,7 @@ public class ClientAutoUpdateProtocol implements ClientListener {
             try (DirectoryStream<Path> pluginPaths = Files.newDirectoryStream(pluginDirectory, "**.jar")) {
                 ConfigurationSection payload = new MemoryConfiguration();
 
-                List<ConfigurationSection> pluginInfoList = new ArrayList<>();
+                Collection<ConfigurationSection> pluginInfoList = new ArrayList<>();
 
                 for (Path pluginPath : pluginPaths) {
                     ConfigurationSection pluginInfo = loadPluginInfo(pluginPath);
@@ -69,7 +70,7 @@ public class ClientAutoUpdateProtocol implements ClientListener {
     }
 
     @Override
-    public void connectionClosed(Client client, Channel channel) {
+    public void connectionClosed(Client client) {
 
     }
 

@@ -22,11 +22,14 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
 
 import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by paul on 01/02/16.
  */
-public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
+@ChannelHandler.Sharable
+public class MSMClient extends ChannelInboundHandlerAdapter implements Client, ChannelFutureListener {
 
     private static final Map<String, ClientListener> preStartListenerMap = new HashMap<>();
     private static boolean started = false;
@@ -38,12 +41,30 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
 
     private final MinecraftServerInfo serverInfo;
 
+    private boolean serverStopping = false;
+
+    private EventLoopGroup workerGroup = createNioEventLoopGroup();
+
     public MSMClient(HostAndPort address, MinecraftServerInfo serverInfo) {
         this.address = address;
         this.serverInfo = serverInfo;
 
-        //Add the MSMLogin protocol to the protocol map to make logins work
-        idToProtocolMap.put(0, "MSMLogin");
+        reset();
+
+        //Add default protocols
+        listenerMap.put("MSMLogin", new ClientLoginProtocol());
+
+        //Clear out the static map to prevent objects from being kept alive due to being kept in this
+        listenerMap.putAll(preStartListenerMap);
+        preStartListenerMap.clear();
+    }
+
+    public void close() {
+        serverStopping = true;
+
+        if(channel != null) channel.close();
+
+        workerGroup.shutdownGracefully();
     }
 
     public static void addProtocol(String protocolName, ClientListener protocolListener) {
@@ -93,16 +114,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
     public void start() {
         started = true;
 
-        //Add default protocols
-        listenerMap.put("MSMLogin", new ClientLoginProtocol());
-
-        //Clear out the static map to prevent objects from being kept alive due to being kept in this
-        listenerMap.putAll(preStartListenerMap);
-        preStartListenerMap.clear();
-
         System.out.println("Connecting to MSM server: " + address);
-
-        EventLoopGroup workerGroup = createNioEventLoopGroup();
 
         Bootstrap b = createBootstrap();
         b.group(workerGroup);
@@ -117,10 +129,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
 
         ChannelFuture future = b.connect(address.getHostText(), address.getPort());
 
-        //noinspection unchecked
-        future.addListeners(unused1 -> startRequest());
-
-        future.channel().closeFuture().addListener(unused2 -> workerGroup.shutdownGracefully());
+        future.addListener(this);
     }
 
     NioEventLoopGroup createNioEventLoopGroup() {
@@ -181,6 +190,52 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
 
         //Send the packet to the listener for the specified protocol
         listenerMap.get(protocol).packetRecieved(this, channel, packet.getPayload());
+    }
+
+    /**
+     * Called when the connection succeeds or fails.
+     *
+     * @param future The channel future
+     * @throws Exception
+     */
+    @Override
+    public void operationComplete(ChannelFuture future) throws Exception {
+        if(future.isSuccess()) {
+            startRequest();
+        } else {
+            EventLoop loop = future.channel().eventLoop();
+            reconnect(loop);
+        }
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        for(String protocol : idToProtocolMap.values()) {
+            getListenerForProtocol(protocol).connectionClosed(this);
+        }
+
+        EventLoop loop = ctx.channel().eventLoop();
+        reconnect(loop);
+    }
+
+    private void reset() {
+        started = false;
+        channel = null;
+
+        idToProtocolMap.clear();
+        idToProtocolMap.put(0, "MSMLogin");
+
+        channelMap.clear();
+    }
+
+    private void reconnect(ScheduledExecutorService eventLoop) {
+        reset();
+
+        if(serverStopping) return;
+
+        System.out.println("Lost connection, attempting reconnect");
+
+        eventLoop.schedule(this::start, 5L, TimeUnit.SECONDS);
     }
 
     private class MSMClientChannel implements Channel {

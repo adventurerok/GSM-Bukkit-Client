@@ -19,7 +19,7 @@ public class ClientLoginProtocol implements ClientListener {
     }
 
     @Override
-    public void connectionClosed(Client client, Channel channel) {
+    public void connectionClosed(Client client) {
 
     }
 

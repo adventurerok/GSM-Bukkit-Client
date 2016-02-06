@@ -10,7 +10,7 @@ public interface ClientListener {
 
     void connectionOpened(Client client, Channel channel);
 
-    void connectionClosed(Client client, Channel channel);
+    void connectionClosed(Client client);
 
     void packetRecieved(Client client, Channel channel, ConfigurationSection payload);
 }
