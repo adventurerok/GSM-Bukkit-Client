@@ -7,5 +7,7 @@ import com.ithinkrok.msm.common.Channel;
  */
 public interface Client {
 
+    MinecraftServerInfo getMinecraftServerInfo();
+
     Channel getChannel(String protocol);
 }

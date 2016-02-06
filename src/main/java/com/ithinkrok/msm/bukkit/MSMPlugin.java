@@ -3,9 +3,16 @@ package com.ithinkrok.msm.bukkit;
 import com.google.common.net.HostAndPort;
 import com.ithinkrok.msm.bukkit.protocol.ClientAutoUpdateProtocol;
 import com.ithinkrok.msm.client.ClientListener;
+import com.ithinkrok.msm.client.MinecraftServerInfo;
 import com.ithinkrok.msm.client.impl.MSMClient;
+import com.ithinkrok.msm.common.MinecraftServerType;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by paul on 03/02/16.
@@ -26,9 +33,13 @@ public class MSMPlugin extends JavaPlugin {
 
             HostAndPort address = HostAndPort.fromParts(hostname, port);
 
+            String serverName = config.getString("this_server.name");
+            boolean hasBungee = config.getBoolean("this_server.has_bungee");
+
+            MinecraftServerInfo serverInfo = getServerInfo(serverName, hasBungee);
 
             getLogger().info("Connecting to MSM Server at " + address);
-            client = new MSMClient(address);
+            client = new MSMClient(address, serverInfo);
 
             client.start();
         });
@@ -36,5 +47,22 @@ public class MSMPlugin extends JavaPlugin {
 
     public static void addProtocol(String protocolName, ClientListener protocolListener) {
         MSMClient.addProtocol(protocolName, protocolListener);
+    }
+
+    private MinecraftServerInfo getServerInfo(String serverName, boolean hasBungee) {
+
+        MinecraftServerType serverType;
+        if (Bukkit.getVersion().toLowerCase().contains("spigot")) serverType = MinecraftServerType.SPIGOT;
+        else serverType = MinecraftServerType.CRAFTBUKKIT;
+
+        int maxPlayerCount = Bukkit.getMaxPlayers();
+
+        List<String> plugins = new ArrayList<>();
+
+        for (Plugin plugin : Bukkit.getPluginManager().getPlugins()) {
+            plugins.add(plugin.getName());
+        }
+
+        return new MinecraftServerInfo(serverType, serverName, hasBungee, maxPlayerCount, plugins);
     }
 }

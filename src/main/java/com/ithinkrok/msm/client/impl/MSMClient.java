@@ -5,6 +5,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.net.HostAndPort;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.Client;
+import com.ithinkrok.msm.client.MinecraftServerInfo;
 import com.ithinkrok.msm.client.protocol.ClientLoginProtocol;
 import com.ithinkrok.msm.common.Channel;
 import com.ithinkrok.msm.common.Packet;
@@ -35,8 +36,11 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
     private final BiMap<Integer, String> idToProtocolMap = HashBiMap.create();
     private volatile io.netty.channel.Channel channel;
 
-    public MSMClient(HostAndPort address) {
+    private final MinecraftServerInfo serverInfo;
+
+    public MSMClient(HostAndPort address, MinecraftServerInfo serverInfo) {
         this.address = address;
+        this.serverInfo = serverInfo;
 
         //Add the MSMLogin protocol to the protocol map to make logins work
         idToProtocolMap.put(0, "MSMLogin");
@@ -45,6 +49,11 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
     public static void addProtocol(String protocolName, ClientListener protocolListener) {
         if (started) throw new RuntimeException("The MSMClient has already started");
         preStartListenerMap.put(protocolName, protocolListener);
+    }
+
+    @Override
+    public MinecraftServerInfo getMinecraftServerInfo() {
+        return serverInfo;
     }
 
     public ClientListener getListenerForProtocol(String protocol) {
@@ -142,6 +151,10 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
         loginPayload.set("hostname", address.getHostText());
         loginPayload.set("protocols", new ArrayList<>(listenerMap.keySet()));
         loginPayload.set("version", 0);
+
+        ConfigurationSection serverInfo = this.serverInfo.toConfig();
+
+        loginPayload.set("server_info", serverInfo);
 
         Packet loginPacket = new Packet((byte) 0, loginPayload);
 
