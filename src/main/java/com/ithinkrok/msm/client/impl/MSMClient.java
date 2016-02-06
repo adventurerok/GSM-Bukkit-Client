@@ -37,10 +37,8 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
     private final Map<String, ClientListener> listenerMap = new HashMap<>();
     private final Map<Integer, MSMClientChannel> channelMap = new HashMap<>();
     private final BiMap<Integer, String> idToProtocolMap = HashBiMap.create();
-    private volatile io.netty.channel.Channel channel;
-
     private final MinecraftServerInfo serverInfo;
-
+    private volatile io.netty.channel.Channel channel;
     private boolean serverStopping = false;
 
     private int connectFails = 0;
@@ -61,12 +59,14 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         preStartListenerMap.clear();
     }
 
-    public void close() {
-        serverStopping = true;
+    private void reset() {
+        started = false;
+        channel = null;
 
-        if(channel != null) channel.close();
+        idToProtocolMap.clear();
+        idToProtocolMap.put(0, "MSMLogin");
 
-        workerGroup.shutdownGracefully();
+        channelMap.clear();
     }
 
     public static void addProtocol(String protocolName, ClientListener protocolListener) {
@@ -74,13 +74,17 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         preStartListenerMap.put(protocolName, protocolListener);
     }
 
+    public void close() {
+        serverStopping = true;
+
+        if (channel != null) channel.close();
+
+        workerGroup.shutdownGracefully();
+    }
+
     @Override
     public MinecraftServerInfo getMinecraftServerInfo() {
         return serverInfo;
-    }
-
-    public ClientListener getListenerForProtocol(String protocol) {
-        return listenerMap.get(protocol);
     }
 
     @Override
@@ -98,6 +102,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
 
         return channel;
     }
+
 
     public Collection<String> getSupportedProtocols() {
         return idToProtocolMap.values();
@@ -132,10 +137,6 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         future.addListener(this);
     }
 
-    NioEventLoopGroup createNioEventLoopGroup() {
-        return new NioEventLoopGroup(1);
-    }
-
     Bootstrap createBootstrap() {
         return new Bootstrap();
     }
@@ -152,27 +153,29 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         pipeline.addLast("MSMClient", this);
     }
 
-    void startRequest() {
-        System.out.println("Connected successfully and sending login packet");
-
-        MemoryConfiguration loginPayload = new MemoryConfiguration();
-
-        loginPayload.set("hostname", address.getHostText());
-        loginPayload.set("protocols", new ArrayList<>(listenerMap.keySet()));
-        loginPayload.set("version", 0);
-
-        ConfigurationSection serverInfo = this.serverInfo.toConfig();
-
-        loginPayload.set("server_info", serverInfo);
-
-        Packet loginPacket = new Packet((byte) 0, loginPayload);
-
-        channel.writeAndFlush(loginPacket);
+    NioEventLoopGroup createNioEventLoopGroup() {
+        return new NioEventLoopGroup(1);
     }
 
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
         channel = ctx.channel();
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        for (String protocol : idToProtocolMap.values()) {
+            getListenerForProtocol(protocol).connectionClosed(this);
+        }
+
+        System.out.println("Lost connection, attempting reconnect");
+
+        EventLoop loop = ctx.channel().eventLoop();
+        reconnect(loop);
+    }
+
+    public ClientListener getListenerForProtocol(String protocol) {
+        return listenerMap.get(protocol);
     }
 
     @Override
@@ -200,7 +203,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
      */
     @Override
     public void operationComplete(ChannelFuture future) throws Exception {
-        if(future.isSuccess()) {
+        if (future.isSuccess()) {
             System.out.println("Connected to MSM server: " + address);
             connectFails = 0;
 
@@ -211,36 +214,32 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         }
     }
 
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        for(String protocol : idToProtocolMap.values()) {
-            getListenerForProtocol(protocol).connectionClosed(this);
-        }
+    void startRequest() {
+        System.out.println("Connected successfully and sending login packet");
 
-        System.out.println("Lost connection, attempting reconnect");
+        MemoryConfiguration loginPayload = new MemoryConfiguration();
 
-        EventLoop loop = ctx.channel().eventLoop();
-        reconnect(loop);
-    }
+        loginPayload.set("hostname", address.getHostText());
+        loginPayload.set("protocols", new ArrayList<>(listenerMap.keySet()));
+        loginPayload.set("version", 0);
 
-    private void reset() {
-        started = false;
-        channel = null;
+        ConfigurationSection serverInfo = this.serverInfo.toConfig();
 
-        idToProtocolMap.clear();
-        idToProtocolMap.put(0, "MSMLogin");
+        loginPayload.set("server_info", serverInfo);
 
-        channelMap.clear();
+        Packet loginPacket = new Packet((byte) 0, loginPayload);
+
+        channel.writeAndFlush(loginPacket);
     }
 
     private void reconnect(ScheduledExecutorService eventLoop) {
         reset();
 
-        if(serverStopping) return;
+        if (serverStopping) return;
 
         ++connectFails;
 
-        if((connectFails % 10) == 0) {
+        if ((connectFails % 10) == 0) {
             System.out.println("Failed to reconnect to MSM Server after " + connectFails + " attempts");
         }
 

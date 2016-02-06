@@ -4,6 +4,7 @@ import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.common.Channel;
 import com.ithinkrok.msm.common.util.FIleUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.MemoryConfiguration;
@@ -74,6 +75,14 @@ public class ClientAutoUpdateProtocol implements ClientListener {
 
     }
 
+    public void scheduleRestart() {
+        plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
+            if(plugin.getServer().getOnlinePlayers().size() > 1) return;
+
+            plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), "restart");
+        }, 20, 1200);
+    }
+
     @Override
     public void packetRecieved(Client client, Channel channel, ConfigurationSection payload) {
 
@@ -112,8 +121,7 @@ public class ClientAutoUpdateProtocol implements ClientListener {
             e.printStackTrace();
         }
 
-        //TODO flag for restart (if the packet is the last one)
-        //TODO Server side
+        scheduleRestart();
     }
 
     private ConfigurationSection loadPluginInfo(Path pluginPath) throws IOException, InvalidConfigurationException {
