@@ -31,15 +31,15 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
     private static boolean started = false;
     private final HostAndPort address;
     private final Map<String, ClientListener> listenerMap = new HashMap<>();
-    private final Map<Byte, MSMClientChannel> channelMap = new HashMap<>();
-    private final BiMap<Byte, String> idToProtocolMap = HashBiMap.create();
+    private final Map<Integer, MSMClientChannel> channelMap = new HashMap<>();
+    private final BiMap<Integer, String> idToProtocolMap = HashBiMap.create();
     private volatile io.netty.channel.Channel channel;
 
     public MSMClient(HostAndPort address) {
         this.address = address;
 
         //Add the MSMLogin protocol to the protocol map to make logins work
-        idToProtocolMap.put((byte) 0, "MSMLogin");
+        idToProtocolMap.put(0, "MSMLogin");
     }
 
     public static void addProtocol(String protocolName, ClientListener protocolListener) {
@@ -56,7 +56,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
         return getChannel(idToProtocolMap.inverse().get(protocol));
     }
 
-    private MSMClientChannel getChannel(byte id) {
+    private MSMClientChannel getChannel(int id) {
         MSMClientChannel channel = channelMap.get(id);
 
         if (channel == null) {
@@ -74,7 +74,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
     public void setSupportedProtocols(List<String> supportedProtocols) {
         idToProtocolMap.clear();
 
-        byte counter = 0;
+        int counter = 0;
 
         for (String protocol : supportedProtocols) {
             idToProtocolMap.put(counter++, protocol);
@@ -172,9 +172,9 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client {
 
     private class MSMClientChannel implements Channel {
 
-        private final byte id;
+        private final int id;
 
-        public MSMClientChannel(byte id) {
+        public MSMClientChannel(int id) {
             this.id = id;
         }
 
