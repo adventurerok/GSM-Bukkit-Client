@@ -15,6 +15,7 @@ import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Created by paul on 07/02/16.
@@ -57,7 +58,31 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     @Override
     public void packetRecieved(Client client, Channel channel, ConfigurationSection payload) {
+        String mode = payload.getString("mode");
+        if(mode == null) return;
 
+        switch(mode) {
+            case "Broadcast":
+                plugin.getServer().broadcastMessage(payload.getString("message"));
+                return;
+            case "Message":
+                handleMessage(payload);
+        }
+    }
+
+    private void handleMessage(ConfigurationSection payload) {
+        List<String> recipients = payload.getStringList("recipients");
+
+        String message = payload.getString("message");
+
+        for(String uuidString : recipients) {
+            UUID uuid = UUID.fromString(uuidString);
+
+            Player player = plugin.getServer().getPlayer(uuid);
+            if(player == null) continue;
+
+            player.sendMessage(message);
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
