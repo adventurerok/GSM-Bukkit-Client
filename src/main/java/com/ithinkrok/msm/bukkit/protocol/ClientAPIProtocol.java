@@ -115,7 +115,9 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         ConfigurationSection payload = new MemoryConfiguration();
 
         payload.set("player", event.getPlayer().getUniqueId().toString());
-        payload.set("command", event.getMessage());
+
+        String fullCommand = event.getMessage().substring(1);
+        payload.set("command", fullCommand);
         payload.set("mode", "PlayerCommand");
 
         channel.write(payload);
