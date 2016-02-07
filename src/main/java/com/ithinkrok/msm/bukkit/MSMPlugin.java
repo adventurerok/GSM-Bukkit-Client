@@ -1,6 +1,7 @@
 package com.ithinkrok.msm.bukkit;
 
 import com.google.common.net.HostAndPort;
+import com.ithinkrok.msm.bukkit.protocol.ClientAPIProtocol;
 import com.ithinkrok.msm.bukkit.protocol.ClientAutoUpdateProtocol;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.common.MinecraftServerInfo;
@@ -24,6 +25,10 @@ public class MSMPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         addProtocol("MSMAutoUpdate", new ClientAutoUpdateProtocol(this));
+
+        ClientAPIProtocol apiProtocol = new ClientAPIProtocol(this);
+        getServer().getPluginManager().registerEvents(apiProtocol, this);
+        addProtocol("MSMAPI", apiProtocol);
 
         getServer().getScheduler().scheduleSyncDelayedTask(this, () -> {
             ConfigurationSection config = getConfig();
