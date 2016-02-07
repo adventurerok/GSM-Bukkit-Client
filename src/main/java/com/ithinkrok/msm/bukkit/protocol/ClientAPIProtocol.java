@@ -108,7 +108,8 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
         if(commandInfo == null) return;
 
-        if(!event.getPlayer().hasPermission(commandInfo.permission)) return;
+        String perm = commandInfo.permission;
+        if(perm != null && !perm.isEmpty() && !event.getPlayer().hasPermission(perm)) return;
 
         event.setCancelled(true);
 
