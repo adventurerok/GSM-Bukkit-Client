@@ -52,10 +52,18 @@ public class ClientAutoUpdateProtocol implements ClientListener {
                 Collection<ConfigurationSection> pluginInfoList = new ArrayList<>();
 
                 for (Path pluginPath : pluginPaths) {
-                    ConfigurationSection pluginInfo = loadPluginInfo(pluginPath);
-                    if (pluginInfo == null) continue;
+                    try {
+                        ConfigurationSection pluginInfo = loadPluginInfo(pluginPath);
+                        if (pluginInfo == null) continue;
 
-                    pluginInfoList.add(pluginInfo);
+                        pluginInfoList.add(pluginInfo);
+                    } catch (InvalidConfigurationException e) {
+                        System.err.println("Plugin " + pluginPath + " has an invalid configuration");
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        System.err.println("IOException while polling plugin version: " + pluginPath);
+                        e.printStackTrace();
+                    }
                 }
 
                 payload.set("plugins", pluginInfoList);
@@ -64,7 +72,8 @@ public class ClientAutoUpdateProtocol implements ClientListener {
                 payload.set("mode", "PluginInfo");
 
                 channel.write(payload);
-            } catch (IOException | InvalidConfigurationException e) {
+            } catch (IOException e) {
+                System.err.println("Failed to iterate over plugin directory: " + pluginDirectory);
                 e.printStackTrace();
             }
 
