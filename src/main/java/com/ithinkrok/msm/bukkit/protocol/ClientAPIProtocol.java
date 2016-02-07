@@ -3,19 +3,19 @@ package com.ithinkrok.msm.bukkit.protocol;
 import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.common.Channel;
+import com.ithinkrok.msm.common.util.ConfigUtils;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Created by paul on 07/02/16.
@@ -30,6 +30,8 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     private Client client;
     private Channel channel;
+
+    private final Map<String, CommandInfo> commandMap = new HashMap<>();
 
     @Override
     public void connectionOpened(Client client, Channel channel) {
@@ -67,6 +69,17 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 return;
             case "Message":
                 handleMessage(payload);
+                return;
+            case "RegisterCommands":
+                handleRegisterCommands(payload);
+        }
+    }
+
+    private void handleRegisterCommands(ConfigurationSection payload) {
+        for(ConfigurationSection commandInfoConfig : ConfigUtils.getConfigList(payload, "commands")) {
+            CommandInfo commandInfo = new CommandInfo(commandInfoConfig);
+
+            commandMap.put(commandInfo.name, commandInfo);
         }
     }
 
@@ -83,6 +96,29 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
             player.sendMessage(message);
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
+        if(event.isCancelled()) return;
+
+        String command = event.getMessage().split(" ")[0].toLowerCase();
+
+        CommandInfo commandInfo = commandMap.get(command);
+
+        if(commandInfo == null) return;
+
+        if(!event.getPlayer().hasPermission(commandInfo.permission)) return;
+
+        event.setCancelled(true);
+
+        ConfigurationSection payload = new MemoryConfiguration();
+
+        payload.set("player", event.getPlayer().getUniqueId().toString());
+        payload.set("command", event.getMessage());
+        payload.set("mode", "PlayerCommand");
+
+        channel.write(payload);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -112,5 +148,19 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         config.set("name", player.getName());
 
         return config;
+    }
+
+    private static final class CommandInfo {
+        final String name;
+        final String usage;
+        final String description;
+        final String permission;
+
+        private CommandInfo(ConfigurationSection config) {
+            name = config.getString("name");
+            usage = config.getString("usage");
+            description = config.getString("description");
+            permission = config.getString("permission");
+        }
     }
 }
