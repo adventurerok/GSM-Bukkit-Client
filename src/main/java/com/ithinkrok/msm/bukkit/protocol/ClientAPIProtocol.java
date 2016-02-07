@@ -102,7 +102,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
         if(event.isCancelled()) return;
 
-        String command = event.getMessage().split(" ")[0].toLowerCase();
+        String command = event.getMessage().split(" ")[0].toLowerCase().substring(1);
 
         CommandInfo commandInfo = commandMap.get(command);
 
