@@ -31,6 +31,8 @@ import java.util.concurrent.TimeUnit;
 @ChannelHandler.Sharable
 public class MSMClient extends ChannelInboundHandlerAdapter implements Client, ChannelFutureListener {
 
+    private final Random random = new Random();
+
     private static final Map<String, ClientListener> preStartListenerMap = new HashMap<>();
     private static boolean started = false;
     private final HostAndPort address;
@@ -43,7 +45,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
 
     private int connectFails = 0;
 
-    private EventLoopGroup workerGroup = createNioEventLoopGroup();
+    private final EventLoopGroup workerGroup = createNioEventLoopGroup();
 
     public MSMClient(HostAndPort address, MinecraftServerInfo serverInfo) {
         this.address = address;
@@ -243,7 +245,10 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
             System.out.println("Failed to reconnect to MSM Server after " + connectFails + " attempts");
         }
 
-        eventLoop.schedule(this::start, 15L, TimeUnit.SECONDS);
+        long waitTime = 15L;
+        if(connectFails == 1) waitTime = 5L + random.nextInt(15);
+
+        eventLoop.schedule(this::start, waitTime, TimeUnit.SECONDS);
     }
 
     private class MSMClientChannel implements Channel {
