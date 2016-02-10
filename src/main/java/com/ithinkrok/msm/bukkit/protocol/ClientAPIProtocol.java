@@ -3,9 +3,8 @@ package com.ithinkrok.msm.bukkit.protocol;
 import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.common.Channel;
-import com.ithinkrok.msm.common.util.ConfigUtils;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.MemoryConfiguration;
+import com.ithinkrok.util.config.Config;
+import com.ithinkrok.util.config.MemoryConfig;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -38,13 +37,13 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         this.client = client;
         this.channel = channel;
 
-        List<ConfigurationSection> playerConfigs = new ArrayList<>();
+        List<Config> playerConfigs = new ArrayList<>();
 
         for(Player player : plugin.getServer().getOnlinePlayers()) {
             playerConfigs.add(createPlayerConfig(player));
         }
 
-        ConfigurationSection payload = new MemoryConfiguration();
+        Config payload = new MemoryConfig();
 
         payload.set("players", playerConfigs);
         payload.set("mode", "PlayerInfo");
@@ -59,7 +58,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     }
 
     @Override
-    public void packetRecieved(Client client, Channel channel, ConfigurationSection payload) {
+    public void packetRecieved(Client client, Channel channel, Config payload) {
         String mode = payload.getString("mode");
         if(mode == null) return;
 
@@ -75,15 +74,15 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         }
     }
 
-    private void handleRegisterCommands(ConfigurationSection payload) {
-        for(ConfigurationSection commandInfoConfig : ConfigUtils.getConfigList(payload, "commands")) {
+    private void handleRegisterCommands(Config payload) {
+        for(Config commandInfoConfig : payload.getConfigList("commands")) {
             CommandInfo commandInfo = new CommandInfo(commandInfoConfig);
 
             commandMap.put(commandInfo.name, commandInfo);
         }
     }
 
-    private void handleMessage(ConfigurationSection payload) {
+    private void handleMessage(Config payload) {
         List<String> recipients = payload.getStringList("recipients");
 
         String message = payload.getString("message");
@@ -113,7 +112,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
         event.setCancelled(true);
 
-        ConfigurationSection payload = new MemoryConfiguration();
+        Config payload = new MemoryConfig();
 
         payload.set("player", event.getPlayer().getUniqueId().toString());
 
@@ -126,7 +125,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
-        ConfigurationSection payload = createPlayerConfig(event.getPlayer());
+        Config payload = createPlayerConfig(event.getPlayer());
 
         payload.set("mode", "PlayerJoin");
 
@@ -135,7 +134,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        ConfigurationSection payload = new MemoryConfiguration();
+        Config payload = new MemoryConfig();
 
         payload.set("uuid", event.getPlayer().getUniqueId().toString());
 
@@ -144,8 +143,8 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         channel.write(payload);
     }
 
-    private ConfigurationSection createPlayerConfig(Player player) {
-        ConfigurationSection config = new MemoryConfiguration();
+    private Config createPlayerConfig(Player player) {
+        Config config = new MemoryConfig();
 
         config.set("uuid", player.getUniqueId().toString());
         config.set("name", player.getName());
@@ -159,7 +158,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         final String description;
         final String permission;
 
-        private CommandInfo(ConfigurationSection config) {
+        private CommandInfo(Config config) {
             name = config.getString("name");
             usage = config.getString("usage");
             description = config.getString("description");

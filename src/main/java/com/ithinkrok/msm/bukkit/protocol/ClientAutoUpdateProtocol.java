@@ -4,10 +4,10 @@ import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.common.Channel;
 import com.ithinkrok.util.FIleUtil;
+import com.ithinkrok.util.config.Config;
+import com.ithinkrok.util.config.MemoryConfig;
 import org.bukkit.ChatColor;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
-import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
@@ -45,13 +45,13 @@ public class ClientAutoUpdateProtocol implements ClientListener {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
 
             try (DirectoryStream<Path> pluginPaths = Files.newDirectoryStream(pluginDirectory, "**.jar")) {
-                ConfigurationSection payload = new MemoryConfiguration();
+                Config payload = new MemoryConfig();
 
-                Collection<ConfigurationSection> pluginInfoList = new ArrayList<>();
+                Collection<Config> pluginInfoList = new ArrayList<>();
 
                 for (Path pluginPath : pluginPaths) {
                     try {
-                        ConfigurationSection pluginInfo = loadPluginInfo(pluginPath);
+                        Config pluginInfo = loadPluginInfo(pluginPath);
                         if (pluginInfo == null) continue;
 
                         pluginInfoList.add(pluginInfo);
@@ -84,7 +84,7 @@ public class ClientAutoUpdateProtocol implements ClientListener {
     }
 
     @Override
-    public void packetRecieved(Client client, Channel channel, ConfigurationSection payload) {
+    public void packetRecieved(Client client, Channel channel, Config payload) {
 
         String mode = payload.getString("mode");
         if (mode == null) return;
@@ -96,7 +96,7 @@ public class ClientAutoUpdateProtocol implements ClientListener {
         }
     }
 
-    private void handlePluginInstall(ConfigurationSection payload) {
+    private void handlePluginInstall(Config payload) {
         String name = payload.getString("name");
 
         byte[] updateBytes = (byte[]) payload.get("bytes");
@@ -151,8 +151,8 @@ public class ClientAutoUpdateProtocol implements ClientListener {
         }, 20, 1200);
     }
 
-    private ConfigurationSection loadPluginInfo(Path pluginPath) throws IOException, InvalidConfigurationException {
-        ConfigurationSection result = new MemoryConfiguration();
+    private Config loadPluginInfo(Path pluginPath) throws IOException, InvalidConfigurationException {
+        Config result = new MemoryConfig();
 
         try (FileSystem jarFile = FIleUtil.createZipFileSystem(pluginPath)) {
 

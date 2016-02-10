@@ -3,23 +3,23 @@ package com.ithinkrok.msm.client.impl;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.net.HostAndPort;
-import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.Client;
-import com.ithinkrok.msm.common.MinecraftServerInfo;
+import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.protocol.ClientLoginProtocol;
 import com.ithinkrok.msm.common.Channel;
+import com.ithinkrok.msm.common.MinecraftServerInfo;
 import com.ithinkrok.msm.common.Packet;
 import com.ithinkrok.msm.common.handler.MSMFrameDecoder;
 import com.ithinkrok.msm.common.handler.MSMFrameEncoder;
 import com.ithinkrok.msm.common.handler.MSMPacketDecoder;
 import com.ithinkrok.msm.common.handler.MSMPacketEncoder;
+import com.ithinkrok.util.config.Config;
+import com.ithinkrok.util.config.MemoryConfig;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.MemoryConfiguration;
 
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
@@ -219,13 +219,13 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
     void startRequest() {
         System.out.println("Connected successfully and sending login packet");
 
-        MemoryConfiguration loginPayload = new MemoryConfiguration();
+        Config loginPayload = new MemoryConfig();
 
         loginPayload.set("hostname", address.getHostText());
         loginPayload.set("protocols", new ArrayList<>(listenerMap.keySet()));
         loginPayload.set("version", 0);
 
-        ConfigurationSection serverInfo = this.serverInfo.toConfig();
+        Config serverInfo = this.serverInfo.toConfig();
 
         loginPayload.set("server_info", serverInfo);
 
@@ -260,7 +260,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         }
 
         @Override
-        public void write(ConfigurationSection packet) {
+        public void write(Config packet) {
             channel.writeAndFlush(new Packet(id, packet));
         }
     }

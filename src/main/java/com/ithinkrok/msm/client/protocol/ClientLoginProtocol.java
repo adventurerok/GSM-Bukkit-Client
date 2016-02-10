@@ -4,7 +4,7 @@ import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.impl.MSMClient;
 import com.ithinkrok.msm.common.Channel;
-import org.bukkit.configuration.ConfigurationSection;
+import com.ithinkrok.util.config.Config;
 
 import java.util.List;
 
@@ -24,7 +24,7 @@ public class ClientLoginProtocol implements ClientListener {
     }
 
     @Override
-    public void packetRecieved(Client client, Channel channel, ConfigurationSection payload) {
+    public void packetRecieved(Client client, Channel channel, Config payload) {
         List<String> sharedProtocols = payload.getStringList("protocols");
 
         ((MSMClient)client).setSupportedProtocols(sharedProtocols);
