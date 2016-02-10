@@ -6,6 +6,7 @@ import com.ithinkrok.msm.common.Channel;
 import com.ithinkrok.util.FIleUtil;
 import com.ithinkrok.util.config.Config;
 import com.ithinkrok.util.config.MemoryConfig;
+import com.ithinkrok.util.config.YamlConfigIO;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -160,11 +161,7 @@ public class ClientAutoUpdateProtocol implements ClientListener {
 
             if (!Files.exists(pluginYmlPath)) return null;
 
-            YamlConfiguration pluginYml = new YamlConfiguration();
-
-            try (Reader reader = Files.newBufferedReader(pluginYmlPath)) {
-                pluginYml.load(reader);
-            }
+            Config pluginYml = YamlConfigIO.loadConfig(pluginYmlPath);
 
             String name = pluginYml.getString("name");
             if (name == null) return null;
