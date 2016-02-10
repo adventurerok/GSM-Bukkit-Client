@@ -64,7 +64,9 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
         switch(mode) {
             case "Broadcast":
-                plugin.getServer().broadcastMessage(payload.getString("message"));
+                String message = convertAmperstandToSelectionCharacter(payload.getString("message"));
+
+                plugin.getServer().broadcastMessage(message);
                 return;
             case "Message":
                 handleMessage(payload);
@@ -85,7 +87,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     private void handleMessage(Config payload) {
         List<String> recipients = payload.getStringList("recipients");
 
-        String message = payload.getString("message");
+        String message = convertAmperstandToSelectionCharacter(payload.getString("message"));
 
         for(String uuidString : recipients) {
             UUID uuid = UUID.fromString(uuidString);
@@ -150,6 +152,10 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         config.set("name", player.getName());
 
         return config;
+    }
+
+    private String convertAmperstandToSelectionCharacter(String message) {
+        return message.replace('&', '§');
     }
 
     private static final class CommandInfo {
