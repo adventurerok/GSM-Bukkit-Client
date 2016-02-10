@@ -4,6 +4,8 @@ import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
 import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.common.Channel;
+import com.ithinkrok.util.config.Config;
+import com.ithinkrok.util.config.MemoryConfig;
 import com.tngtech.java.junit.dataprovider.DataProviderRunner;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
@@ -55,7 +57,7 @@ public class ClientAutoUpdateProtocolTest {
 
     @Test
     public void pluginInstallPacketShouldInstallPlugin() throws IOException {
-        ConfigurationSection payload = new MemoryConfiguration();
+        Config payload = new MemoryConfig();
 
         payload.set("mode", "PluginInstall");
 
