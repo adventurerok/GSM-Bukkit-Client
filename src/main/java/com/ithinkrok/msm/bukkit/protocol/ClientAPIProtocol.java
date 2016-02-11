@@ -39,18 +39,20 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         this.client = client;
         this.channel = channel;
 
-        List<Config> playerConfigs = new ArrayList<>();
+        runOnMainThread(() -> {
+            List<Config> playerConfigs = new ArrayList<>();
 
-        for(Player player : plugin.getServer().getOnlinePlayers()) {
-            playerConfigs.add(createPlayerConfig(player));
-        }
+            for (Player player : plugin.getServer().getOnlinePlayers()) {
+                playerConfigs.add(createPlayerConfig(player));
+            }
 
-        Config payload = new MemoryConfig();
+            Config payload = new MemoryConfig();
 
-        payload.set("players", playerConfigs);
-        payload.set("mode", "PlayerInfo");
+            payload.set("players", playerConfigs);
+            payload.set("mode", "PlayerInfo");
 
-        channel.write(payload);
+            channel.write(payload);
+        });
     }
 
     @Override
@@ -68,7 +70,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
             case "Broadcast":
                 String message = convertAmpersandToSelectionCharacter(payload.getString("message"));
 
-                plugin.getServer().broadcastMessage(message);
+                runOnMainThread(() -> plugin.getServer().broadcastMessage(message));
                 return;
             case "Message":
                 handleMessage(payload);
@@ -81,38 +83,43 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         }
     }
 
+    private void runOnMainThread(Runnable runnable) {
+        plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, runnable);
+    }
+
     private void handleRegisterPermissions(Config payload) {
-        List<String> addedPermissions = new ArrayList<>();
+        runOnMainThread(() -> {
+            List<String> addedPermissions = new ArrayList<>();
 
-        for(Config permissionInfoConfig : payload.getConfigList("permissions")){
-            String name = permissionInfoConfig.getString("name");
-            String description = permissionInfoConfig.getString("description");
+            for (Config permissionInfoConfig : payload.getConfigList("permissions")) {
+                String name = permissionInfoConfig.getString("name");
+                String description = permissionInfoConfig.getString("description");
 
-            PermissionDefault permissionDefault = PermissionDefault.getByName(permissionInfoConfig.getString
-                    ("default"));
+                PermissionDefault permissionDefault = PermissionDefault.getByName(permissionInfoConfig.getString("default"));
 
-            Map<String, Boolean> children = new HashMap<>();
+                Map<String, Boolean> children = new HashMap<>();
 
-            Config childrenConfig = permissionInfoConfig.getConfigOrEmpty("children");
+                Config childrenConfig = permissionInfoConfig.getConfigOrEmpty("children");
 
-            for(String childName : childrenConfig.getKeys(false)) {
-                children.put(childName, childrenConfig.getBoolean(childName));
+                for (String childName : childrenConfig.getKeys(false)) {
+                    children.put(childName, childrenConfig.getBoolean(childName));
+                }
+
+                Permission permission = new Permission(name, description, permissionDefault, children);
+
+                addPermission(permission);
+
+                addedPermissions.add(name);
             }
 
-            Permission permission = new Permission(name, description, permissionDefault, children);
+            for (String permissionName : addedPermissions) {
+                Permission permission = plugin.getServer().getPluginManager().getPermission(permissionName);
 
-            addPermission(permission);
+                if (permission.getChildren().isEmpty()) continue;
 
-            addedPermissions.add(name);
-        }
-
-        for(String permissionName : addedPermissions) {
-            Permission permission = plugin.getServer().getPluginManager().getPermission(permissionName);
-
-            if(permission.getChildren().isEmpty()) continue;
-
-            permission.recalculatePermissibles();
-        }
+                permission.recalculatePermissibles();
+            }
+        });
     }
 
     private void addPermission(Permission permission) {
@@ -149,14 +156,16 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
         String message = convertAmpersandToSelectionCharacter(payload.getString("message"));
 
-        for(String uuidString : recipients) {
-            UUID uuid = UUID.fromString(uuidString);
+        runOnMainThread(() -> {
+            for (String uuidString : recipients) {
+                UUID uuid = UUID.fromString(uuidString);
 
-            Player player = plugin.getServer().getPlayer(uuid);
-            if(player == null) continue;
+                Player player = plugin.getServer().getPlayer(uuid);
+                if (player == null) continue;
 
-            player.sendMessage(message);
-        }
+                player.sendMessage(message);
+            }
+        });
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
