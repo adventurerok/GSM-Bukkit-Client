@@ -5,7 +5,6 @@ import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.common.Channel;
 import com.ithinkrok.util.config.Config;
 import com.ithinkrok.util.config.MemoryConfig;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -67,7 +66,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
         switch(mode) {
             case "Broadcast":
-                String message = convertAmperstandToSelectionCharacter(payload.getString("message"));
+                String message = convertAmpersandToSelectionCharacter(payload.getString("message"));
 
                 plugin.getServer().broadcastMessage(message);
                 return;
@@ -126,13 +125,17 @@ public class ClientAPIProtocol implements ClientListener, Listener {
             CommandInfo commandInfo = new CommandInfo(commandInfoConfig);
 
             commandMap.put(commandInfo.name, commandInfo);
+
+            for(String alias : commandInfo.aliases) {
+                commandMap.put(alias, commandInfo);
+            }
         }
     }
 
     private void handleMessage(Config payload) {
         List<String> recipients = payload.getStringList("recipients");
 
-        String message = convertAmperstandToSelectionCharacter(payload.getString("message"));
+        String message = convertAmpersandToSelectionCharacter(payload.getString("message"));
 
         for(String uuidString : recipients) {
             UUID uuid = UUID.fromString(uuidString);
@@ -199,7 +202,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         return config;
     }
 
-    private String convertAmperstandToSelectionCharacter(String message) {
+    private String convertAmpersandToSelectionCharacter(String message) {
         return message.replace('&', '§');
     }
 
@@ -208,12 +211,14 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         final String usage;
         final String description;
         final String permission;
+        final List<String> aliases;
 
         private CommandInfo(Config config) {
             name = config.getString("name");
             usage = config.getString("usage");
             description = config.getString("description");
             permission = config.getString("permission");
+            aliases = config.getStringList("aliases");
         }
     }
 }
