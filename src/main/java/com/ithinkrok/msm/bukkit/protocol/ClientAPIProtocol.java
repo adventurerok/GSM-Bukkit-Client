@@ -82,6 +82,8 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     }
 
     private void handleRegisterPermissions(Config payload) {
+        List<String> addedPermissions = new ArrayList<>();
+
         for(Config permissionInfoConfig : payload.getConfigList("permissions")){
             String name = permissionInfoConfig.getString("name");
             String description = permissionInfoConfig.getString("description");
@@ -100,6 +102,16 @@ public class ClientAPIProtocol implements ClientListener, Listener {
             Permission permission = new Permission(name, description, permissionDefault, children);
 
             addPermission(permission);
+
+            addedPermissions.add(name);
+        }
+
+        for(String permissionName : addedPermissions) {
+            Permission permission = plugin.getServer().getPluginManager().getPermission(permissionName);
+
+            if(permission.getChildren().isEmpty()) continue;
+
+            permission.recalculatePermissibles();
         }
     }
 
