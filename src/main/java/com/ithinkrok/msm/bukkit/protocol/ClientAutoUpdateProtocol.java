@@ -5,6 +5,7 @@ import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.common.Channel;
 import com.ithinkrok.util.FIleUtil;
 import com.ithinkrok.util.config.Config;
+import com.ithinkrok.util.config.InvalidConfigException;
 import com.ithinkrok.util.config.MemoryConfig;
 import com.ithinkrok.util.config.YamlConfigIO;
 import org.bukkit.ChatColor;
@@ -54,7 +55,7 @@ public class ClientAutoUpdateProtocol implements ClientListener {
                         if (pluginInfo == null) continue;
 
                         pluginInfoList.add(pluginInfo);
-                    } catch (InvalidConfigurationException e) {
+                    } catch (InvalidConfigException e) {
                         System.err.println("Plugin " + pluginPath + " has an invalid configuration");
                         e.printStackTrace();
                     } catch (IOException e) {
@@ -150,7 +151,7 @@ public class ClientAutoUpdateProtocol implements ClientListener {
         }, 20, 1200);
     }
 
-    private Config loadPluginInfo(Path pluginPath) throws IOException, InvalidConfigurationException {
+    private Config loadPluginInfo(Path pluginPath) throws IOException {
         Config result = new MemoryConfig();
 
         try (FileSystem jarFile = FIleUtil.createZipFileSystem(pluginPath)) {
