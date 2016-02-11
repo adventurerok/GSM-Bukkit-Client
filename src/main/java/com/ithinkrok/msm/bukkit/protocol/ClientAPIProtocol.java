@@ -13,6 +13,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.permissions.Permission;
+import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.Plugin;
 
 import java.util.*;
@@ -74,7 +76,49 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 return;
             case "RegisterCommands":
                 handleRegisterCommands(payload);
+                return;
+            case "RegisterPermissions":
+                handleRegisterPermissions(payload);
         }
+    }
+
+    private void handleRegisterPermissions(Config payload) {
+        for(Config permissionInfoConfig : payload.getConfigList("permissions")){
+            String name = permissionInfoConfig.getString("name");
+            String description = permissionInfoConfig.getString("description");
+
+            PermissionDefault permissionDefault = PermissionDefault.getByName(permissionInfoConfig.getString
+                    ("default"));
+
+            Map<String, Boolean> children = new HashMap<>();
+
+            Config childrenConfig = permissionInfoConfig.getConfigOrEmpty("children");
+
+            for(String childName : childrenConfig.getKeys(false)) {
+                children.put(childName, childrenConfig.getBoolean(childName));
+            }
+
+            Permission permission = new Permission(name, description, permissionDefault, children);
+
+            addPermission(permission);
+        }
+    }
+
+    private void addPermission(Permission permission) {
+        Permission old = plugin.getServer().getPluginManager().getPermission(permission.getName());
+
+        if(old == null) {
+            plugin.getServer().getPluginManager().addPermission(permission);
+            return;
+        }
+
+        old.setDescription(permission.getDescription());
+
+        old.setDefault(permission.getDefault());
+
+        Map<String, Boolean> oldChildren = old.getChildren();
+        oldChildren.clear();
+        oldChildren.putAll(permission.getChildren());
     }
 
     private void handleRegisterCommands(Config payload) {
