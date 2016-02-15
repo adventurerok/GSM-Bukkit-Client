@@ -1,5 +1,7 @@
 package com.ithinkrok.msm.bukkit.protocol;
 
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
 import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.common.Channel;
@@ -24,15 +26,13 @@ import java.util.*;
 public class ClientAPIProtocol implements ClientListener, Listener {
 
     private final Plugin plugin;
+    private final Map<String, CommandInfo> commandMap = new HashMap<>();
+    private Client client;
+    private Channel channel;
 
     public ClientAPIProtocol(Plugin plugin) {
         this.plugin = plugin;
     }
-
-    private Client client;
-    private Channel channel;
-
-    private final Map<String, CommandInfo> commandMap = new HashMap<>();
 
     @Override
     public void connectionOpened(Client client, Channel channel) {
@@ -64,9 +64,9 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     @Override
     public void packetRecieved(Client client, Channel channel, Config payload) {
         String mode = payload.getString("mode");
-        if(mode == null) return;
+        if (mode == null) return;
 
-        switch(mode) {
+        switch (mode) {
             case "Broadcast":
                 String message = convertAmpersandToSelectionCharacter(payload.getString("message"));
 
@@ -80,11 +80,43 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 return;
             case "RegisterPermissions":
                 handleRegisterPermissions(payload);
+                return;
+            case "ChangeServer":
+                handleChangeServer(payload);
         }
     }
 
-    private void runOnMainThread(Runnable runnable) {
-        plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, runnable);
+    private String convertAmpersandToSelectionCharacter(String message) {
+        return message.replace('&', '§');
+    }
+
+    private void handleMessage(Config payload) {
+        List<String> recipients = payload.getStringList("recipients");
+
+        String message = convertAmpersandToSelectionCharacter(payload.getString("message"));
+
+        runOnMainThread(() -> {
+            for (String uuidString : recipients) {
+                UUID uuid = UUID.fromString(uuidString);
+
+                Player player = plugin.getServer().getPlayer(uuid);
+                if (player == null) continue;
+
+                player.sendMessage(message);
+            }
+        });
+    }
+
+    private void handleRegisterCommands(Config payload) {
+        for (Config commandInfoConfig : payload.getConfigList("commands")) {
+            CommandInfo commandInfo = new CommandInfo(commandInfoConfig);
+
+            commandMap.put(commandInfo.name, commandInfo);
+
+            for (String alias : commandInfo.aliases) {
+                commandMap.put(alias, commandInfo);
+            }
+        }
     }
 
     private void handleRegisterPermissions(Config payload) {
@@ -95,7 +127,8 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 String name = permissionInfoConfig.getString("name");
                 String description = permissionInfoConfig.getString("description");
 
-                PermissionDefault permissionDefault = PermissionDefault.getByName(permissionInfoConfig.getString("default"));
+                PermissionDefault permissionDefault =
+                        PermissionDefault.getByName(permissionInfoConfig.getString("default"));
 
                 Map<String, Boolean> children = new HashMap<>();
 
@@ -122,10 +155,28 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         });
     }
 
+    private void handleChangeServer(Config payload) {
+        if (!client.getMinecraftServerInfo().hasBungee()) return;
+
+        UUID playerUUID = UUID.fromString(payload.getString("player"));
+        String target = payload.getString("target");
+
+        Player player = plugin.getServer().getPlayer(playerUUID);
+        if (player == null) return;
+
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeUTF("Connect");
+        out.writeUTF(target);
+
+        plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+            player.sendPluginMessage(plugin, "BungeeCord", out.toByteArray());
+        });
+    }
+
     private void addPermission(Permission permission) {
         Permission old = plugin.getServer().getPluginManager().getPermission(permission.getName());
 
-        if(old == null) {
+        if (old == null) {
             plugin.getServer().getPluginManager().addPermission(permission);
             return;
         }
@@ -139,47 +190,31 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         oldChildren.putAll(permission.getChildren());
     }
 
-    private void handleRegisterCommands(Config payload) {
-        for(Config commandInfoConfig : payload.getConfigList("commands")) {
-            CommandInfo commandInfo = new CommandInfo(commandInfoConfig);
-
-            commandMap.put(commandInfo.name, commandInfo);
-
-            for(String alias : commandInfo.aliases) {
-                commandMap.put(alias, commandInfo);
-            }
-        }
+    private void runOnMainThread(Runnable runnable) {
+        plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, runnable);
     }
 
-    private void handleMessage(Config payload) {
-        List<String> recipients = payload.getStringList("recipients");
+    private Config createPlayerConfig(Player player) {
+        Config config = new MemoryConfig();
 
-        String message = convertAmpersandToSelectionCharacter(payload.getString("message"));
+        config.set("uuid", player.getUniqueId().toString());
+        config.set("name", player.getName());
 
-        runOnMainThread(() -> {
-            for (String uuidString : recipients) {
-                UUID uuid = UUID.fromString(uuidString);
-
-                Player player = plugin.getServer().getPlayer(uuid);
-                if (player == null) continue;
-
-                player.sendMessage(message);
-            }
-        });
+        return config;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
-        if(event.isCancelled()) return;
+        if (event.isCancelled()) return;
 
         String command = event.getMessage().split(" ")[0].toLowerCase().substring(1);
 
         CommandInfo commandInfo = commandMap.get(command);
 
-        if(commandInfo == null) return;
+        if (commandInfo == null) return;
 
         String perm = commandInfo.permission;
-        if(perm != null && !perm.isEmpty() && !event.getPlayer().hasPermission(perm)) return;
+        if (perm != null && !perm.isEmpty() && !event.getPlayer().hasPermission(perm)) return;
 
         event.setCancelled(true);
 
@@ -212,19 +247,6 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         payload.set("mode", "PlayerQuit");
 
         channel.write(payload);
-    }
-
-    private Config createPlayerConfig(Player player) {
-        Config config = new MemoryConfig();
-
-        config.set("uuid", player.getUniqueId().toString());
-        config.set("name", player.getName());
-
-        return config;
-    }
-
-    private String convertAmpersandToSelectionCharacter(String message) {
-        return message.replace('&', '§');
     }
 
     private static final class CommandInfo {
