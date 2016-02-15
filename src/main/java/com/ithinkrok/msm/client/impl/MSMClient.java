@@ -20,6 +20,7 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import org.apache.commons.lang.Validate;
 
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,21 +32,18 @@ import java.util.concurrent.TimeUnit;
 @ChannelHandler.Sharable
 public class MSMClient extends ChannelInboundHandlerAdapter implements Client, ChannelFutureListener {
 
-    private final Random random = new Random();
-
     private static final Map<String, ClientListener> preStartListenerMap = new HashMap<>();
     private static boolean started = false;
+    private final Random random = new Random();
     private final HostAndPort address;
     private final Map<String, ClientListener> listenerMap = new HashMap<>();
     private final Map<Integer, MSMClientChannel> channelMap = new HashMap<>();
     private final BiMap<Integer, String> idToProtocolMap = HashBiMap.create();
     private final MinecraftServerInfo serverInfo;
+    private final EventLoopGroup workerGroup = createNioEventLoopGroup();
     private volatile io.netty.channel.Channel channel;
     private boolean serverStopping = false;
-
     private int connectFails = 0;
-
-    private final EventLoopGroup workerGroup = createNioEventLoopGroup();
 
     public MSMClient(HostAndPort address, MinecraftServerInfo serverInfo) {
         this.address = address;
@@ -94,17 +92,23 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         return getChannel(idToProtocolMap.inverse().get(protocol));
     }
 
-    private MSMClientChannel getChannel(int id) {
-        MSMClientChannel channel = channelMap.get(id);
+    @Override
+    public void changePlayerServer(UUID playerUUID, String serverName) {
+        Validate.notNull(playerUUID, "playerUUID cannot be null");
+        Validate.notNull(serverName, "serverName cannot be null");
 
-        if (channel == null) {
-            channel = new MSMClientChannel(id);
-            channelMap.put(id, channel);
-        }
+        Config payload = new MemoryConfig();
 
-        return channel;
+        payload.set("player", playerUUID);
+        payload.set("target", serverName);
+        payload.set("mode", "ChangeServer");
+
+        getAPIChannel().write(payload);
     }
 
+    private Channel getAPIChannel() {
+        return getChannel("MSMAPI");
+    }
 
     public Collection<String> getSupportedProtocols() {
         return idToProtocolMap.values();
@@ -180,6 +184,23 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         return listenerMap.get(protocol);
     }
 
+    private void reconnect(ScheduledExecutorService eventLoop) {
+        reset();
+
+        if (serverStopping) return;
+
+        ++connectFails;
+
+        if ((connectFails % 10) == 0) {
+            System.out.println("Failed to reconnect to MSM Server after " + connectFails + " attempts");
+        }
+
+        long waitTime = 15L;
+        if (connectFails == 1) waitTime = 5L + random.nextInt(15);
+
+        eventLoop.schedule(this::start, waitTime, TimeUnit.SECONDS);
+    }
+
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         //Pass on Objects that are not Packets to the next handler
@@ -195,6 +216,17 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
 
         //Send the packet to the listener for the specified protocol
         listenerMap.get(protocol).packetRecieved(this, channel, packet.getPayload());
+    }
+
+    private MSMClientChannel getChannel(int id) {
+        MSMClientChannel channel = channelMap.get(id);
+
+        if (channel == null) {
+            channel = new MSMClientChannel(id);
+            channelMap.put(id, channel);
+        }
+
+        return channel;
     }
 
     /**
@@ -234,23 +266,6 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         channel.writeAndFlush(loginPacket);
     }
 
-    private void reconnect(ScheduledExecutorService eventLoop) {
-        reset();
-
-        if (serverStopping) return;
-
-        ++connectFails;
-
-        if ((connectFails % 10) == 0) {
-            System.out.println("Failed to reconnect to MSM Server after " + connectFails + " attempts");
-        }
-
-        long waitTime = 15L;
-        if(connectFails == 1) waitTime = 5L + random.nextInt(15);
-
-        eventLoop.schedule(this::start, waitTime, TimeUnit.SECONDS);
-    }
-
     private class MSMClientChannel implements Channel {
 
         private final int id;
@@ -263,5 +278,6 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         public void write(Config packet) {
             channel.writeAndFlush(new Packet(id, packet));
         }
+
     }
 }
