@@ -71,13 +71,20 @@ public class ResourceUsage implements Runnable {
         if (historyIndex >= historySize) historyIndex = 0;
 
         averageTPS = average(tpsHistory);
+        //TPS higher than 20 should not be recorded
+        if (averageTPS > 20) averageTPS = 20;
+
         averageRamUsage = average(ramHistory);
 
         double tpsDifference = Math.abs(averageTPS - lastSentTPS);
 
         double ramDifferencePercent = Math.abs(averageRamUsage - lastSentRamUsage) / lastSentRamUsage;
 
-        if (tpsDifference > 0.2d || ramDifferencePercent > 0.1d || getAllocatedMemory() != lastSentAllocatedRam ||
+        boolean sendTpsUpdate = tpsDifference > 0.2d;
+        boolean sendRamUpdate = ramDifferencePercent > 0.1d;
+
+
+        if (sendTpsUpdate || sendRamUpdate || getAllocatedMemory() != lastSentAllocatedRam ||
                 getMaxMemory() != lastSentMaxRam) {
             sendUpdate = true;
         }
@@ -94,7 +101,10 @@ public class ResourceUsage implements Runnable {
 
         double timeSpentTicks = timeSpent / 1_000_000d / 50d;
 
-        double tps = tickInterval / timeSpentTicks;
+        double tps = (tickInterval / timeSpentTicks) * 20d;
+
+        //Prevent tps from being too high and skewing the average
+        if (tps > 21) tps = 21;
 
         lastPoll = currentTime;
 
@@ -129,14 +139,6 @@ public class ResourceUsage implements Runnable {
         channel.write(payload);
     }
 
-    public double getAverageRamUsage() {
-        return averageRamUsage;
-    }
-
-    public double getAverageTPS() {
-        return averageTPS;
-    }
-
     private Config toConfig() {
         Config config = new MemoryConfig();
 
@@ -147,5 +149,13 @@ public class ResourceUsage implements Runnable {
         config.set("mode", "ResourceUsage");
 
         return config;
+    }
+
+    public double getAverageRamUsage() {
+        return averageRamUsage;
+    }
+
+    public double getAverageTPS() {
+        return averageTPS;
     }
 }
