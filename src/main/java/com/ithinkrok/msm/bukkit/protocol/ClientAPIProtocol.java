@@ -214,7 +214,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
-        if (event.isCancelled()) return;
+        if (event.isCancelled() || channel == null) return;
 
         String command = event.getMessage().split(" ")[0].toLowerCase().substring(1);
 
@@ -240,6 +240,8 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
+        if(channel == null) return;
+
         Config payload = createPlayerConfig(event.getPlayer());
 
         payload.set("mode", "PlayerJoin");
@@ -249,6 +251,8 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerQuit(PlayerQuitEvent event) {
+        if(channel == null) return;
+
         Config payload = new MemoryConfig();
 
         payload.set("uuid", event.getPlayer().getUniqueId().toString());
