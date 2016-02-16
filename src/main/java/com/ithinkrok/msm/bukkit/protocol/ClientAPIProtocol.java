@@ -2,6 +2,7 @@ package com.ithinkrok.msm.bukkit.protocol;
 
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
+import com.ithinkrok.msm.bukkit.util.ResourceUsage;
 import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.common.Channel;
@@ -29,15 +30,21 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     private final Map<String, CommandInfo> commandMap = new HashMap<>();
     private Client client;
     private Channel channel;
+    private final ResourceUsage resourceUsageTracker = new ResourceUsage();
 
     public ClientAPIProtocol(Plugin plugin) {
         this.plugin = plugin;
+
+        plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, resourceUsageTracker, 1,
+                resourceUsageTracker.getTickInterval());
     }
 
     @Override
     public void connectionOpened(Client client, Channel channel) {
         this.client = client;
         this.channel = channel;
+
+        resourceUsageTracker.setChannel(channel);
 
         runOnMainThread(() -> {
             List<Config> playerConfigs = new ArrayList<>();
@@ -59,6 +66,8 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     public void connectionClosed(Client client) {
         this.client = null;
         this.channel = null;
+
+        resourceUsageTracker.setChannel(null);
     }
 
     @Override
