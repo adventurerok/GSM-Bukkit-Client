@@ -93,7 +93,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
     }
 
     @Override
-    public void changePlayerServer(UUID playerUUID, String serverName) {
+    public boolean changePlayerServer(UUID playerUUID, String serverName) {
         Validate.notNull(playerUUID, "playerUUID cannot be null");
         Validate.notNull(serverName, "serverName cannot be null");
 
@@ -104,6 +104,8 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         payload.set("mode", "ChangeServer");
 
         getAPIChannel().write(payload);
+
+        return true;
     }
 
     private Channel getAPIChannel() {

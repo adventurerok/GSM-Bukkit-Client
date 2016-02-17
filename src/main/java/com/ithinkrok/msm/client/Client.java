@@ -14,5 +14,5 @@ public interface Client {
 
     Channel getChannel(String protocol);
 
-    void changePlayerServer(UUID playerUUID, String serverName);
+    boolean changePlayerServer(UUID playerUUID, String serverName);
 }
