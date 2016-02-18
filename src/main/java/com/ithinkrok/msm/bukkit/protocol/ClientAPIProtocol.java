@@ -57,13 +57,40 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 playerConfigs.add(createPlayerConfig(player));
             }
 
-            Config payload = new MemoryConfig();
+            Config playerInfo = new MemoryConfig();
 
-            payload.set("players", playerConfigs);
-            payload.set("mode", "PlayerInfo");
+            playerInfo.set("players", playerConfigs);
+            playerInfo.set("mode", "PlayerInfo");
 
-            channel.write(payload);
+            channel.write(playerInfo);
+
+            List<Config> banConfigs = new ArrayList<>();
+
+            for(BanEntry entry : plugin.getServer().getBanList(BanList.Type.NAME).getBanEntries()) {
+                Config banConfig = createBanConfig(entry);
+
+                banConfigs.add(banConfig);
+            }
+
+            Config banInfo = new MemoryConfig();
+            banInfo.set("bans", banConfigs);
+            banInfo.set("mode", "BanInfo");
+
+            channel.write(banInfo);
         });
+    }
+
+    private Config createBanConfig(BanEntry entry) {
+        UUID uuid = plugin.getServer().getOfflinePlayer(entry.getTarget()).getUniqueId();
+
+        Config banConfig = new MemoryConfig();
+        banConfig.set("player", uuid);
+        banConfig.set("player_name", entry.getTarget());
+        banConfig.set("banner_name", entry.getSource());
+        banConfig.set("reason", entry.getReason());
+        banConfig.set("until", entry.getExpiration().toInstant().toEpochMilli());
+        banConfig.set("created", entry.getCreated().toInstant().toEpochMilli());
+        return banConfig;
     }
 
     @Override
