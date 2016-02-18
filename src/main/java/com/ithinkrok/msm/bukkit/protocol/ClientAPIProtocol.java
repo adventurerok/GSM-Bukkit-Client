@@ -57,12 +57,10 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 playerConfigs.add(createPlayerConfig(player));
             }
 
-            Config playerInfo = new MemoryConfig();
+            Config payload = new MemoryConfig();
 
-            playerInfo.set("players", playerConfigs);
-            playerInfo.set("mode", "PlayerInfo");
-
-            channel.write(playerInfo);
+            payload.set("players", playerConfigs);
+            payload.set("mode", "ConnectInfo");
 
             List<Config> banConfigs = new ArrayList<>();
 
@@ -72,11 +70,9 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 banConfigs.add(banConfig);
             }
 
-            Config banInfo = new MemoryConfig();
-            banInfo.set("bans", banConfigs);
-            banInfo.set("mode", "BanInfo");
+            payload.set("bans", banConfigs);
 
-            channel.write(banInfo);
+            channel.write(payload);
         });
     }
 
@@ -84,7 +80,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         UUID uuid = plugin.getServer().getOfflinePlayer(entry.getTarget()).getUniqueId();
 
         Config banConfig = new MemoryConfig();
-        banConfig.set("player", uuid);
+        banConfig.set("player", uuid.toString());
         banConfig.set("player_name", entry.getTarget());
         banConfig.set("banner_name", entry.getSource());
         banConfig.set("reason", entry.getReason());
