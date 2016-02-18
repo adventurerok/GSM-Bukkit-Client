@@ -2,6 +2,7 @@ package com.ithinkrok.msm.bukkit.protocol;
 
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
+import com.ithinkrok.msm.bukkit.util.MSMCommandSender;
 import com.ithinkrok.msm.bukkit.util.ResourceUsage;
 import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.client.ClientListener;
@@ -32,15 +33,15 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     private final Plugin plugin;
     private final Map<String, CommandInfo> commandMap = new HashMap<>();
+    private final ResourceUsage resourceUsageTracker = new ResourceUsage();
     private Client client;
     private Channel channel;
-    private final ResourceUsage resourceUsageTracker = new ResourceUsage();
 
     public ClientAPIProtocol(Plugin plugin) {
         this.plugin = plugin;
 
-        plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, resourceUsageTracker, 1,
-                resourceUsageTracker.getTickInterval());
+        plugin.getServer().getScheduler()
+                .scheduleSyncRepeatingTask(plugin, resourceUsageTracker, 1, resourceUsageTracker.getTickInterval());
     }
 
     @Override
@@ -64,7 +65,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
             List<Config> banConfigs = new ArrayList<>();
 
-            for(BanEntry entry : plugin.getServer().getBanList(BanList.Type.NAME).getBanEntries()) {
+            for (BanEntry entry : plugin.getServer().getBanList(BanList.Type.NAME).getBanEntries()) {
                 Config banConfig = createBanConfig(entry);
 
                 banConfigs.add(banConfig);
@@ -74,22 +75,6 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
             channel.write(payload);
         });
-    }
-
-    private Config createBanConfig(BanEntry entry) {
-        UUID uuid = plugin.getServer().getOfflinePlayer(entry.getTarget()).getUniqueId();
-
-        Config banConfig = new MemoryConfig();
-        banConfig.set("player", uuid.toString());
-        banConfig.set("player_name", entry.getTarget());
-        banConfig.set("banner_name", entry.getSource());
-        banConfig.set("reason", entry.getReason());
-
-        if(entry.getExpiration() == null) banConfig.set("until", Long.MAX_VALUE);
-        else banConfig.set("until", entry.getExpiration().toInstant().toEpochMilli());
-
-        banConfig.set("created", entry.getCreated().toInstant().toEpochMilli());
-        return banConfig;
     }
 
     @Override
@@ -132,79 +117,20 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 return;
             case "ConsoleMessage":
                 handleConsoleMessage(payload);
+                return;
+            case "ExecCommand":
+                handleExecCommand(payload);
         }
-    }
-
-    private void handleConsoleMessage(Config payload) {
-        String message = payload.getString("message");
-
-        plugin.getServer().getConsoleSender().sendMessage(message);
     }
 
     private void handleBroadcast(Config payload) {
         String message = convertAmpersandToSelectionCharacter(payload.getString("message"));
 
         runOnMainThread(() -> {
-            for(Player player : plugin.getServer().getOnlinePlayers()) {
+            for (Player player : plugin.getServer().getOnlinePlayers()) {
                 player.sendMessage(message);
             }
         });
-    }
-
-    private void handleUnban(Config payload) {
-        UUID playerUUID = UUID.fromString(payload.getString("player"));
-
-        runOnMainThread(() -> {
-            //If the name of the player is null then the player cannot be banned
-            OfflinePlayer offlinePlayer = plugin.getServer().getOfflinePlayer(playerUUID);
-            if(offlinePlayer.getName() == null) return;
-
-            BanList banList = plugin.getServer().getBanList(BanList.Type.NAME);
-
-            banList.pardon(offlinePlayer.getName());
-        });
-    }
-
-    private void handleBan(Config payload) {
-        UUID playerUUID = UUID.fromString(payload.getString("player"));
-
-        Player player = plugin.getServer().getPlayer(playerUUID);
-        if(player == null) return;
-
-        String reason = payload.getString("reason");
-        Instant expires = Instant.ofEpochMilli(payload.getLong("until"));
-        String bannerName = payload.getString("banner_name");
-
-        //Bukkit requires we use the old date time api
-        @SuppressWarnings("UseOfObsoleteDateTimeApi")
-        Date date = Date.from(expires);
-
-        runOnMainThread(() -> {
-            //Only supports banning players who have joined the server
-            OfflinePlayer offlinePlayer = plugin.getServer().getOfflinePlayer(playerUUID);
-            if(offlinePlayer.getName() == null) return;
-
-            BanList banList = plugin.getServer().getBanList(BanList.Type.NAME);
-
-            banList.addBan(offlinePlayer.getName(), reason, date, bannerName);
-        });
-    }
-
-    private void handleKick(Config payload) {
-        UUID playerUUID = UUID.fromString(payload.getString("player"));
-
-        Player player = plugin.getServer().getPlayer(playerUUID);
-        if(player == null) return;
-
-        String reason = payload.getString("reason");
-
-        runOnMainThread(() -> {
-            player.kickPlayer(reason);
-        });
-    }
-
-    private String convertAmpersandToSelectionCharacter(String message) {
-        return message.replace('&', '§');
     }
 
     private void handleMessage(Config payload) {
@@ -290,6 +216,77 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         });
     }
 
+    private void handleKick(Config payload) {
+        UUID playerUUID = UUID.fromString(payload.getString("player"));
+
+        Player player = plugin.getServer().getPlayer(playerUUID);
+        if (player == null) return;
+
+        String reason = payload.getString("reason");
+
+        runOnMainThread(() -> {
+            player.kickPlayer(reason);
+        });
+    }
+
+    private void handleBan(Config payload) {
+        UUID playerUUID = UUID.fromString(payload.getString("player"));
+
+        Player player = plugin.getServer().getPlayer(playerUUID);
+        if (player == null) return;
+
+        String reason = payload.getString("reason");
+        Instant expires = Instant.ofEpochMilli(payload.getLong("until"));
+        String bannerName = payload.getString("banner_name");
+
+        //Bukkit requires we use the old date time api
+        @SuppressWarnings("UseOfObsoleteDateTimeApi")
+        Date date = Date.from(expires);
+
+        runOnMainThread(() -> {
+            //Only supports banning players who have joined the server
+            OfflinePlayer offlinePlayer = plugin.getServer().getOfflinePlayer(playerUUID);
+            if (offlinePlayer.getName() == null) return;
+
+            BanList banList = plugin.getServer().getBanList(BanList.Type.NAME);
+
+            banList.addBan(offlinePlayer.getName(), reason, date, bannerName);
+        });
+    }
+
+    private void handleUnban(Config payload) {
+        UUID playerUUID = UUID.fromString(payload.getString("player"));
+
+        runOnMainThread(() -> {
+            //If the name of the player is null then the player cannot be banned
+            OfflinePlayer offlinePlayer = plugin.getServer().getOfflinePlayer(playerUUID);
+            if (offlinePlayer.getName() == null) return;
+
+            BanList banList = plugin.getServer().getBanList(BanList.Type.NAME);
+
+            banList.pardon(offlinePlayer.getName());
+        });
+    }
+
+    private void handleConsoleMessage(Config payload) {
+        String message = payload.getString("message");
+
+        plugin.getServer().getConsoleSender().sendMessage(message);
+    }
+
+    private void handleExecCommand(Config payload) {
+        String command = payload.getString("command");
+
+        MSMCommandSender commandSender =
+                new MSMCommandSender(plugin.getServer(), channel, payload.getConfigOrEmpty("sender"));
+
+        plugin.getServer().dispatchCommand(commandSender, command);
+    }
+
+    private String convertAmpersandToSelectionCharacter(String message) {
+        return message.replace('&', '§');
+    }
+
     private void addPermission(Permission permission) {
         Permission old = plugin.getServer().getPluginManager().getPermission(permission.getName());
 
@@ -311,10 +308,6 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, runnable);
     }
 
-    private void runAsync(Runnable runnable) {
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, runnable);
-    }
-
     private Config createPlayerConfig(Player player) {
         Config config = new MemoryConfig();
 
@@ -322,6 +315,26 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         config.set("name", player.getName());
 
         return config;
+    }
+
+    private Config createBanConfig(BanEntry entry) {
+        UUID uuid = plugin.getServer().getOfflinePlayer(entry.getTarget()).getUniqueId();
+
+        Config banConfig = new MemoryConfig();
+        banConfig.set("player", uuid.toString());
+        banConfig.set("player_name", entry.getTarget());
+        banConfig.set("banner_name", entry.getSource());
+        banConfig.set("reason", entry.getReason());
+
+        if (entry.getExpiration() == null) banConfig.set("until", Long.MAX_VALUE);
+        else banConfig.set("until", entry.getExpiration().toInstant().toEpochMilli());
+
+        banConfig.set("created", entry.getCreated().toInstant().toEpochMilli());
+        return banConfig;
+    }
+
+    private void runAsync(Runnable runnable) {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, runnable);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -361,7 +374,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
-        if(channel == null) return;
+        if (channel == null) return;
 
         Config payload = createPlayerConfig(event.getPlayer());
 
@@ -372,7 +385,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        if(channel == null) return;
+        if (channel == null) return;
 
         Config payload = new MemoryConfig();
 
