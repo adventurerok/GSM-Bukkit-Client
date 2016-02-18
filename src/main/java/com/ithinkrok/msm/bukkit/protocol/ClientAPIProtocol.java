@@ -12,6 +12,7 @@ import com.ithinkrok.util.config.MemoryConfig;
 import org.bukkit.BanEntry;
 import org.bukkit.BanList;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -277,12 +278,16 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     private void handleExecCommand(Config payload) {
         String command = payload.getString("command");
 
-        MSMCommandSender commandSender =
-                new MSMCommandSender(plugin.getServer(), channel, payload.getConfigOrEmpty("sender"));
+        CommandSender sender;
 
+        if(payload.getBoolean("console")) {
+            sender = plugin.getServer().getConsoleSender();
+        } else {
+            sender = new MSMCommandSender(plugin.getServer(), channel, payload.getConfigOrEmpty("sender"));
+        }
 
         runOnMainThread(() -> {
-            plugin.getServer().dispatchCommand(commandSender, command);
+            plugin.getServer().dispatchCommand(sender, command);
         });
 
     }
