@@ -84,7 +84,10 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         banConfig.set("player_name", entry.getTarget());
         banConfig.set("banner_name", entry.getSource());
         banConfig.set("reason", entry.getReason());
-        banConfig.set("until", entry.getExpiration().toInstant().toEpochMilli());
+
+        if(entry.getExpiration() == null) banConfig.set("until", Long.MAX_VALUE);
+        else banConfig.set("until", entry.getExpiration().toInstant().toEpochMilli());
+
         banConfig.set("created", entry.getCreated().toInstant().toEpochMilli());
         return banConfig;
     }
