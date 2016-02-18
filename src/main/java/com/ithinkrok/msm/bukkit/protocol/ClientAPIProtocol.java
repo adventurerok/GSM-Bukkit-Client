@@ -107,9 +107,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
         switch (mode) {
             case "Broadcast":
-                String message = convertAmpersandToSelectionCharacter(payload.getString("message"));
-
-                runOnMainThread(() -> plugin.getServer().broadcastMessage(message));
+                handleBroadcast(payload);
                 return;
             case "Message":
                 handleMessage(payload);
@@ -132,6 +130,16 @@ public class ClientAPIProtocol implements ClientListener, Listener {
             case "Unban":
                 handleUnban(payload);
         }
+    }
+
+    private void handleBroadcast(Config payload) {
+        String message = convertAmpersandToSelectionCharacter(payload.getString("message"));
+
+        runOnMainThread(() -> {
+            for(Player player : plugin.getServer().getOnlinePlayers()) {
+                player.sendMessage(message);
+            }
+        });
     }
 
     private void handleUnban(Config payload) {
