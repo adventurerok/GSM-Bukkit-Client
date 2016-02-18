@@ -92,7 +92,21 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 return;
             case "ChangeServer":
                 handleChangeServer(payload);
+                return;
+            case "Kick":
+                handleKick(payload);
         }
+    }
+
+    private void handleKick(Config payload) {
+        UUID playerUUID = UUID.fromString(payload.getString("player"));
+
+        Player player = plugin.getServer().getPlayer(playerUUID);
+        if(player == null) return;
+
+        String reason = payload.getString("reason");
+
+        player.kickPlayer(reason);
     }
 
     private String convertAmpersandToSelectionCharacter(String message) {
