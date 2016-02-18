@@ -8,6 +8,9 @@ import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.common.Channel;
 import com.ithinkrok.util.config.Config;
 import com.ithinkrok.util.config.MemoryConfig;
+import org.bukkit.BanEntry;
+import org.bukkit.BanList;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -19,6 +22,7 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.Plugin;
 
+import java.time.Instant;
 import java.util.*;
 
 /**
@@ -95,7 +99,52 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 return;
             case "Kick":
                 handleKick(payload);
+                return;
+            case "Ban":
+                handleBan(payload);
+                return;
+            case "Unban":
+                handleUnban(payload);
         }
+    }
+
+    private void handleUnban(Config payload) {
+        UUID playerUUID = UUID.fromString(payload.getString("player"));
+
+        runOnMainThread(() -> {
+            //If the name of the player is null then the player cannot be banned
+            OfflinePlayer offlinePlayer = plugin.getServer().getOfflinePlayer(playerUUID);
+            if(offlinePlayer.getName() == null) return;
+
+            BanList banList = plugin.getServer().getBanList(BanList.Type.NAME);
+
+            banList.pardon(offlinePlayer.getName());
+        });
+    }
+
+    private void handleBan(Config payload) {
+        UUID playerUUID = UUID.fromString(payload.getString("player"));
+
+        Player player = plugin.getServer().getPlayer(playerUUID);
+        if(player == null) return;
+
+        String reason = payload.getString("reason");
+        Instant expires = Instant.ofEpochMilli(payload.getLong("until"));
+        String bannerName = payload.getString("banner_name");
+
+        //Bukkit requires we use the old date time api
+        @SuppressWarnings("UseOfObsoleteDateTimeApi")
+        Date date = Date.from(expires);
+
+        runOnMainThread(() -> {
+            //Only supports banning players who have joined the server
+            OfflinePlayer offlinePlayer = plugin.getServer().getOfflinePlayer(playerUUID);
+            if(offlinePlayer.getName() == null) return;
+
+            BanList banList = plugin.getServer().getBanList(BanList.Type.NAME);
+
+            banList.addBan(offlinePlayer.getName(), reason, date, bannerName);
+        });
     }
 
     private void handleKick(Config payload) {
@@ -217,6 +266,10 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     private void runOnMainThread(Runnable runnable) {
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, runnable);
+    }
+
+    private void runAsync(Runnable runnable) {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, runnable);
     }
 
     private Config createPlayerConfig(Player player) {
