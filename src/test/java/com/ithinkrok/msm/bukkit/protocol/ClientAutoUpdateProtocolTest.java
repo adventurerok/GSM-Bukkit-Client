@@ -7,8 +7,6 @@ import com.ithinkrok.msm.common.Channel;
 import com.ithinkrok.util.config.Config;
 import com.ithinkrok.util.config.MemoryConfig;
 import com.tngtech.java.junit.dataprovider.DataProviderRunner;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.junit.Before;
 import org.junit.Test;

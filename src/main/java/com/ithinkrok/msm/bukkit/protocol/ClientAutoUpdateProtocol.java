@@ -9,7 +9,6 @@ import com.ithinkrok.util.config.InvalidConfigException;
 import com.ithinkrok.util.config.MemoryConfig;
 import com.ithinkrok.util.config.YamlConfigIO;
 import org.bukkit.ChatColor;
-import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.plugin.Plugin;
 
 import java.io.IOException;
