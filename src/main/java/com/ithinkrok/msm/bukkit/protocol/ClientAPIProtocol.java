@@ -129,7 +129,16 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 return;
             case "Unban":
                 handleUnban(payload);
+                return;
+            case "ConsoleMessage":
+                handleConsoleMessage(payload);
         }
+    }
+
+    private void handleConsoleMessage(Config payload) {
+        String message = payload.getString("message");
+
+        plugin.getServer().getConsoleSender().sendMessage(message);
     }
 
     private void handleBroadcast(Config payload) {
@@ -337,6 +346,15 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         String fullCommand = event.getMessage().substring(1);
         payload.set("command", fullCommand);
         payload.set("mode", "PlayerCommand");
+
+        channel.write(payload);
+    }
+
+    public void sendConsoleCommandPacket(String consoleCommand) {
+        Config payload = new MemoryConfig();
+
+        payload.set("command", consoleCommand);
+        payload.set("mode", "ConsoleCommand");
 
         channel.write(payload);
     }

@@ -8,6 +8,8 @@ import com.ithinkrok.msm.client.impl.MSMClient;
 import com.ithinkrok.msm.common.MinecraftServerInfo;
 import com.ithinkrok.msm.common.MinecraftServerType;
 import org.bukkit.Bukkit;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -23,6 +25,7 @@ import java.util.List;
 public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
 
     private MSMClient client;
+    private ClientAPIProtocol apiProtocol;
 
     @Override
     public void onEnable() {
@@ -43,7 +46,7 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
     private void addDefaultProtocols() {
         addProtocol("MSMAutoUpdate", new ClientAutoUpdateProtocol(this));
 
-        ClientAPIProtocol apiProtocol = new ClientAPIProtocol(this);
+        apiProtocol = new ClientAPIProtocol(this);
         getServer().getPluginManager().registerEvents(apiProtocol, this);
         addProtocol("MSMAPI", apiProtocol);
     }
@@ -92,5 +95,30 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
     @Override
     public void onPluginMessageReceived(String channel, Player player, byte[] message) {
 
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if(sender instanceof Player) {
+            sender.sendMessage("/msm is for non players only");
+            return true;
+        }
+
+        if(args.length < 1) return false;
+
+        StringBuilder consoleCommand = new StringBuilder();
+        boolean addSpace = false;
+
+        for(String arg : args) {
+            if(!addSpace) addSpace = true;
+            else {
+                consoleCommand.append(' ');
+            }
+
+            consoleCommand.append(arg);
+        }
+
+        apiProtocol.sendConsoleCommandPacket(consoleCommand.toString());
+        return true;
     }
 }

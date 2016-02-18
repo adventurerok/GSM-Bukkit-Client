@@ -2,3 +2,9 @@ name: "MSMClient"
 version: "${project.version}"
 main: "com.ithinkrok.msm.bukkit.MSMPlugin"
 author: "ithinkrok"
+
+commands:
+  msm:
+    usage: "/<command> <msm server command...>"
+    description: "Execute a MSM server command as the console"
+    aliases: ["msmconsole", "mcommand"]
