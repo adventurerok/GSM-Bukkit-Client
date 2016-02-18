@@ -106,7 +106,9 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
         String reason = payload.getString("reason");
 
-        player.kickPlayer(reason);
+        runOnMainThread(() -> {
+            player.kickPlayer(reason);
+        });
     }
 
     private String convertAmpersandToSelectionCharacter(String message) {
