@@ -280,7 +280,11 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         MSMCommandSender commandSender =
                 new MSMCommandSender(plugin.getServer(), channel, payload.getConfigOrEmpty("sender"));
 
-        plugin.getServer().dispatchCommand(commandSender, command);
+
+        runOnMainThread(() -> {
+            plugin.getServer().dispatchCommand(commandSender, command);
+        });
+
     }
 
     private String convertAmpersandToSelectionCharacter(String message) {
