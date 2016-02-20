@@ -80,7 +80,7 @@ public class BukkitConfig implements Config {
     }
 
     @Override
-    public void set(String path, Object value) {
+    public Config set(String path, Object value) {
         if (value instanceof Config) {
             value = toBukkitConfig((Config) value);
         } else if (value instanceof Collection<?>) {
@@ -98,6 +98,8 @@ public class BukkitConfig implements Config {
         }
 
         bukkitConfig.set(path, value);
+
+        return this;
     }
 
     @Override
