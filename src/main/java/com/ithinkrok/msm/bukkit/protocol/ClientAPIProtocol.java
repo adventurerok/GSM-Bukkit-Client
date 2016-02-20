@@ -7,6 +7,7 @@ import com.ithinkrok.msm.bukkit.util.ResourceUsage;
 import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.common.Channel;
+import com.ithinkrok.util.StringUtils;
 import com.ithinkrok.util.config.Config;
 import com.ithinkrok.util.config.MemoryConfig;
 import org.bukkit.BanEntry;
@@ -125,7 +126,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     }
 
     private void handleBroadcast(Config payload) {
-        String message = convertAmpersandToSelectionCharacter(payload.getString("message"));
+        String message = StringUtils.convertAmpersandToSelectionCharacter(payload.getString("message"));
 
         runOnMainThread(() -> {
             for (Player player : plugin.getServer().getOnlinePlayers()) {
@@ -137,7 +138,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     private void handleMessage(Config payload) {
         List<String> recipients = payload.getStringList("recipients");
 
-        String message = convertAmpersandToSelectionCharacter(payload.getString("message"));
+        String message = StringUtils.convertAmpersandToSelectionCharacter(payload.getString("message"));
 
         runOnMainThread(() -> {
             for (String uuidString : recipients) {
@@ -290,10 +291,6 @@ public class ClientAPIProtocol implements ClientListener, Listener {
             plugin.getServer().dispatchCommand(sender, command);
         });
 
-    }
-
-    private String convertAmpersandToSelectionCharacter(String message) {
-        return message.replace('&', '§');
     }
 
     private void addPermission(Permission permission) {
