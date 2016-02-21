@@ -80,7 +80,18 @@ public class ResourceUsage implements Runnable {
 
         double ramDifferencePercent = Math.abs(averageRamUsage - lastSentRamUsage) / lastSentRamUsage;
 
-        boolean sendTpsUpdate = averageTPS > 19 ? tpsDifference > 0.1d : tpsDifference > 0.2d;
+        boolean sendTpsUpdate;
+
+        if(averageTPS > 19.9) {
+            sendTpsUpdate = tpsDifference > 0.05d;
+        } else if(averageTPS > 19.5) {
+            sendTpsUpdate = tpsDifference > 0.1d;
+        } else if(averageTPS > 16) {
+            sendTpsUpdate = tpsDifference > 0.2d;
+        } else {
+            sendTpsUpdate = tpsDifference > 0.4d;
+        }
+
         boolean sendRamUpdate = ramDifferencePercent > 0.1d;
 
 
