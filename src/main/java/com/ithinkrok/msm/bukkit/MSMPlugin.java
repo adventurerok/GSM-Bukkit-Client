@@ -65,7 +65,7 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
         MinecraftServerInfo serverInfo = getServerInfo(serverName, hasBungee);
 
         getLogger().info("Connecting to MSM Server at " + address);
-        client = new MSMClient(address, serverInfo);
+        client = new MSMClient(address, serverInfo, config.getString("password"));
 
         client.start();
 

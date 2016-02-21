@@ -1,5 +1,6 @@
 package com.ithinkrok.msm.client.impl;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.net.HostAndPort;
@@ -45,9 +46,12 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
     private boolean serverStopping = false;
     private int connectFails = 0;
 
-    public MSMClient(HostAndPort address, MinecraftServerInfo serverInfo) {
+    private byte[] password;
+
+    public MSMClient(HostAndPort address, MinecraftServerInfo serverInfo, String password) {
         this.address = address;
         this.serverInfo = serverInfo;
+        this.password = password.getBytes(Charsets.UTF_8);
 
         reset();
 
@@ -262,6 +266,8 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         Config serverInfo = this.serverInfo.toConfig();
 
         loginPayload.set("server_info", serverInfo);
+
+        loginPayload.set("password", password);
 
         Packet loginPacket = new Packet((byte) 0, loginPayload);
 
