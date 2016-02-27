@@ -46,7 +46,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
     private boolean serverStopping = false;
     private int connectFails = 0;
 
-    private byte[] password;
+    private final byte[] password;
 
     public MSMClient(HostAndPort address, MinecraftServerInfo serverInfo, String password) {
         this.address = address;

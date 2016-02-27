@@ -30,6 +30,8 @@ public class ClientAutoUpdateProtocol implements ClientListener {
 
     private final Plugin plugin;
 
+    private boolean restarting = false;
+
     public ClientAutoUpdateProtocol(Plugin plugin) {
         this(plugin, Paths.get("plugins"));
     }
@@ -135,8 +137,11 @@ public class ClientAutoUpdateProtocol implements ClientListener {
     }
 
     public void scheduleRestart() {
+        if(restarting) return;
+        restarting = true;
+
         plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
-            if (plugin.getServer().getOnlinePlayers().size() > 1) return;
+            if (!plugin.getServer().getOnlinePlayers().isEmpty()) return;
 
             plugin.getServer()
                     .broadcastMessage(ChatColor.RED.toString() + ChatColor.BOLD.toString() + "Server restarting now" +
