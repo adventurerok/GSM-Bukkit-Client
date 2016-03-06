@@ -8,7 +8,7 @@ import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.protocol.ClientLoginProtocol;
 import com.ithinkrok.msm.common.Channel;
-import com.ithinkrok.msm.common.MinecraftServerInfo;
+import com.ithinkrok.msm.common.MinecraftClientInfo;
 import com.ithinkrok.msm.common.Packet;
 import com.ithinkrok.msm.common.handler.MSMFrameDecoder;
 import com.ithinkrok.msm.common.handler.MSMFrameEncoder;
@@ -40,7 +40,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
     private final Map<String, ClientListener> listenerMap = new HashMap<>();
     private final Map<Integer, MSMClientChannel> channelMap = new HashMap<>();
     private final BiMap<Integer, String> idToProtocolMap = HashBiMap.create();
-    private final MinecraftServerInfo serverInfo;
+    private final MinecraftClientInfo serverInfo;
     private final EventLoopGroup workerGroup = createNioEventLoopGroup();
     private volatile io.netty.channel.Channel channel;
     private boolean serverStopping = false;
@@ -48,7 +48,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
 
     private final byte[] password;
 
-    public MSMClient(HostAndPort address, MinecraftServerInfo serverInfo, String password) {
+    public MSMClient(HostAndPort address, MinecraftClientInfo serverInfo, String password) {
         this.address = address;
         this.serverInfo = serverInfo;
         this.password = password.getBytes(Charsets.UTF_8);
@@ -87,7 +87,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
     }
 
     @Override
-    public MinecraftServerInfo getMinecraftServerInfo() {
+    public MinecraftClientInfo getMinecraftServerInfo() {
         return serverInfo;
     }
 

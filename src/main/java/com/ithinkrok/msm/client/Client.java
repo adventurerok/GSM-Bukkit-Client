@@ -1,7 +1,7 @@
 package com.ithinkrok.msm.client;
 
 import com.ithinkrok.msm.common.Channel;
-import com.ithinkrok.msm.common.MinecraftServerInfo;
+import com.ithinkrok.msm.common.MinecraftClientInfo;
 
 import java.util.UUID;
 
@@ -10,7 +10,7 @@ import java.util.UUID;
  */
 public interface Client {
 
-    MinecraftServerInfo getMinecraftServerInfo();
+    MinecraftClientInfo getMinecraftServerInfo();
 
     Channel getChannel(String protocol);
 

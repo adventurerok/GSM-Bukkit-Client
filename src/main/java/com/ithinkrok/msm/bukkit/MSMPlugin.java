@@ -5,8 +5,8 @@ import com.ithinkrok.msm.bukkit.protocol.ClientAPIProtocol;
 import com.ithinkrok.msm.bukkit.protocol.ClientAutoUpdateProtocol;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.impl.MSMClient;
-import com.ithinkrok.msm.common.MinecraftServerInfo;
-import com.ithinkrok.msm.common.MinecraftServerType;
+import com.ithinkrok.msm.common.MinecraftClientInfo;
+import com.ithinkrok.msm.common.MinecraftClientType;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -62,7 +62,7 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
         String serverName = config.getString("this_server.name");
         boolean hasBungee = config.getBoolean("this_server.has_bungee");
 
-        MinecraftServerInfo serverInfo = getServerInfo(serverName, hasBungee);
+        MinecraftClientInfo serverInfo = getServerInfo(serverName, hasBungee);
 
         getLogger().info("Connecting to MSM Server at " + address);
         client = new MSMClient(address, serverInfo, config.getString("password"));
@@ -75,11 +75,11 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
         MSMClient.addProtocol(protocolName, protocolListener);
     }
 
-    private MinecraftServerInfo getServerInfo(String serverName, boolean hasBungee) {
+    private MinecraftClientInfo getServerInfo(String serverName, boolean hasBungee) {
 
-        MinecraftServerType serverType;
-        if (Bukkit.getVersion().toLowerCase().contains("spigot")) serverType = MinecraftServerType.SPIGOT;
-        else serverType = MinecraftServerType.CRAFTBUKKIT;
+        MinecraftClientType serverType;
+        if (Bukkit.getVersion().toLowerCase().contains("spigot")) serverType = MinecraftClientType.SPIGOT;
+        else serverType = MinecraftClientType.CRAFTBUKKIT;
 
         int maxPlayerCount = Bukkit.getMaxPlayers();
 
@@ -89,7 +89,7 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
             plugins.add(plugin.getName());
         }
 
-        return new MinecraftServerInfo(serverType, serverName, hasBungee, maxPlayerCount, plugins);
+        return new MinecraftClientInfo(serverType, serverName, hasBungee, maxPlayerCount, plugins);
     }
 
     @Override
