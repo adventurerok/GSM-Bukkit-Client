@@ -265,7 +265,7 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
 
         Config serverInfo = this.serverInfo.toConfig();
 
-        loginPayload.set("server_info", serverInfo);
+        loginPayload.set("client_info", serverInfo);
 
         loginPayload.set("password", password);
 
