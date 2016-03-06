@@ -3,6 +3,7 @@ package com.ithinkrok.msm.bukkit;
 import com.google.common.net.HostAndPort;
 import com.ithinkrok.msm.bukkit.protocol.ClientAPIProtocol;
 import com.ithinkrok.msm.bukkit.protocol.ClientAutoUpdateProtocol;
+import com.ithinkrok.msm.bukkit.protocol.ClientMinecraftRequestProtocol;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.impl.MSMClient;
 import com.ithinkrok.msm.common.MinecraftClientInfo;
@@ -45,6 +46,7 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
 
     private void addDefaultProtocols() {
         addProtocol("MSMAutoUpdate", new ClientAutoUpdateProtocol(this));
+        addProtocol("MinecraftRequest", new ClientMinecraftRequestProtocol());
 
         apiProtocol = new ClientAPIProtocol(this);
         getServer().getPluginManager().registerEvents(apiProtocol, this);

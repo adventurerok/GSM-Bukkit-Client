@@ -107,13 +107,17 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         payload.set("target", serverName);
         payload.set("mode", "ChangeServer");
 
-        getAPIChannel().write(payload);
+        getRequestChannel().write(payload);
 
         return true;
     }
 
     private Channel getAPIChannel() {
         return getChannel("MSMAPI");
+    }
+
+    private Channel getRequestChannel() {
+        return getChannel("MinecraftRequest");
     }
 
     public Collection<String> getSupportedProtocols() {
