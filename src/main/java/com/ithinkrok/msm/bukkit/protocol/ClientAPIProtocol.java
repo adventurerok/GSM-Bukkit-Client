@@ -29,6 +29,7 @@ import org.bukkit.plugin.Plugin;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by paul on 07/02/16.
@@ -36,14 +37,15 @@ import java.util.*;
 public class ClientAPIProtocol implements ClientListener, Listener {
 
     private final Plugin plugin;
-    private final Map<String, CommandInfo> commandMap = new HashMap<>();
+    private final Map<String, CommandInfo> commandMap;
     private final ResourceUsage resourceUsageTracker = new ResourceUsage();
     private final Map<String, Set<String>> tabCompletionSets;
     private Client client;
     private Channel channel;
 
-    public ClientAPIProtocol(Plugin plugin, Map<String, Set<String>> tabCompletionSets) {
+    public ClientAPIProtocol(Plugin plugin, Map<String, CommandInfo> commandMap, Map<String, Set<String>> tabCompletionSets) {
         this.plugin = plugin;
+        this.commandMap = commandMap;
         this.tabCompletionSets = tabCompletionSets;
 
         plugin.getServer().getScheduler()

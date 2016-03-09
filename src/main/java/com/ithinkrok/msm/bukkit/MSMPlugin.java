@@ -10,6 +10,7 @@ import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.impl.MSMClient;
 import com.ithinkrok.msm.common.MinecraftClientInfo;
 import com.ithinkrok.msm.common.MinecraftClientType;
+import com.ithinkrok.msm.common.command.CommandInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -33,6 +34,7 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
     private MSMClient client;
     private ClientAPIProtocol apiProtocol;
 
+    private final Map<String, CommandInfo> commandMap = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> tabCompletionSets = new ConcurrentHashMap<>();
 
     @Override
@@ -50,14 +52,15 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
 
         getServer().getScheduler().scheduleSyncDelayedTask(this, this::startMSMClient);
 
-        ProtocolLibrary.getProtocolManager().addPacketListener(new TabCompleteListener(this, tabCompletionSets));
+        ProtocolLibrary.getProtocolManager().addPacketListener(new TabCompleteListener(this, commandMap,
+                tabCompletionSets));
     }
 
     private void addDefaultProtocols() {
         addProtocol("MSMAutoUpdate", new ClientAutoUpdateProtocol(this));
         addProtocol("MinecraftRequest", new ClientMinecraftRequestProtocol());
 
-        apiProtocol = new ClientAPIProtocol(this, tabCompletionSets);
+        apiProtocol = new ClientAPIProtocol(this, commandMap, tabCompletionSets);
         getServer().getPluginManager().registerEvents(apiProtocol, this);
         addProtocol("MSMAPI", apiProtocol);
     }

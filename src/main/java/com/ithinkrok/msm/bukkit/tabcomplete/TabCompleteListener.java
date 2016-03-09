@@ -6,6 +6,7 @@ import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
+import com.ithinkrok.msm.common.command.CommandInfo;
 import org.bukkit.plugin.Plugin;
 
 import java.util.Arrays;
@@ -17,11 +18,13 @@ import java.util.Set;
  */
 public class TabCompleteListener extends PacketAdapter {
 
+    private final Map<String, CommandInfo> commandMap;
     private final Map<String, Set<String>> tabCompletionSets;
 
-    public TabCompleteListener(Plugin plugin, Map<String, Set<String>> tabCompletionSets) {
+    public TabCompleteListener(Plugin plugin, Map<String, CommandInfo> commandMap, Map<String, Set<String>> tabCompletionSets) {
         super(plugin, ListenerPriority.NORMAL, PacketType.Play.Client.TAB_COMPLETE,
                 PacketType.Play.Server.TAB_COMPLETE);
+        this.commandMap = commandMap;
         this.tabCompletionSets = tabCompletionSets;
     }
 
