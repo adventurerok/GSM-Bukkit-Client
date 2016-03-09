@@ -6,7 +6,9 @@ import com.ithinkrok.msm.bukkit.util.MSMCommandSender;
 import com.ithinkrok.msm.bukkit.util.ResourceUsage;
 import com.ithinkrok.msm.client.Client;
 import com.ithinkrok.msm.client.ClientListener;
+import com.ithinkrok.msm.client.command.ClientCommandInfo;
 import com.ithinkrok.msm.common.Channel;
+import com.ithinkrok.msm.common.command.CommandInfo;
 import com.ithinkrok.util.StringUtils;
 import com.ithinkrok.util.config.Config;
 import com.ithinkrok.util.config.MemoryConfig;
@@ -172,11 +174,11 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     private void handleRegisterCommands(Config payload) {
         for (Config commandInfoConfig : payload.getConfigList("commands")) {
-            CommandInfo commandInfo = new CommandInfo(commandInfoConfig);
+            CommandInfo commandInfo = new ClientCommandInfo(commandInfoConfig);
 
-            commandMap.put(commandInfo.name, commandInfo);
+            commandMap.put(commandInfo.getName(), commandInfo);
 
-            for (String alias : commandInfo.aliases) {
+            for (String alias : commandInfo.getAliases()) {
                 commandMap.put(alias, commandInfo);
             }
         }
@@ -405,7 +407,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
         if (commandInfo == null) return;
 
-        String perm = commandInfo.permission;
+        String perm = commandInfo.getPermission();
         if (perm != null && !perm.isEmpty() && !event.getPlayer().hasPermission(perm)) return;
 
         event.setCancelled(true);
@@ -454,19 +456,4 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         channel.write(payload);
     }
 
-    private static final class CommandInfo {
-        final String name;
-        final String usage;
-        final String description;
-        final String permission;
-        final List<String> aliases;
-
-        private CommandInfo(Config config) {
-            name = config.getString("name");
-            usage = config.getString("usage");
-            description = config.getString("description");
-            permission = config.getString("permission");
-            aliases = config.getStringList("aliases");
-        }
-    }
 }
