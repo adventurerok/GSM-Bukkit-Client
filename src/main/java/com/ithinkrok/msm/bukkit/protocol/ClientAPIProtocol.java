@@ -36,10 +36,9 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     private final Plugin plugin;
     private final Map<String, CommandInfo> commandMap = new HashMap<>();
     private final ResourceUsage resourceUsageTracker = new ResourceUsage();
+    private final Map<String, Set<String>> tabCompletionSets;
     private Client client;
     private Channel channel;
-
-    private final Map<String, Set<String>> tabCompletionSets;
 
     public ClientAPIProtocol(Plugin plugin, Map<String, Set<String>> tabCompletionSets) {
         this.plugin = plugin;
@@ -125,6 +124,22 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 return;
             case "ExecCommand":
                 handleExecCommand(payload);
+                return;
+            case "TabSet":
+                handleTabSet(payload);
+                return;
+            case "TabSets":
+                handleTabSets(payload);
+        }
+    }
+
+    private void handleTabSets(Config payload) {
+        Config tabSets = payload.getConfigOrEmpty("tab_sets");
+
+        for(String setName : tabSets.getKeys(false)) {
+            Set<String> tabSet = new HashSet<>(tabSets.getStringList(setName));
+
+            tabCompletionSets.put(setName, tabSet);
         }
     }
 
@@ -284,7 +299,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
         CommandSender sender;
 
-        if(payload.getBoolean("console")) {
+        if (payload.getBoolean("console")) {
             sender = plugin.getServer().getConsoleSender();
         } else {
             sender = new MSMCommandSender(plugin.getServer(), channel, payload.getConfigOrEmpty("sender"));
@@ -294,6 +309,40 @@ public class ClientAPIProtocol implements ClientListener, Listener {
             plugin.getServer().dispatchCommand(sender, command);
         });
 
+    }
+
+    private void handleTabSet(Config payload) {
+        String setName = payload.getString("set_name");
+
+        Collection<String> change = payload.getStringList("change");
+
+        Set<String> modifying = tabCompletionSets.get(setName);
+
+        switch (payload.getString("modify_mode").toLowerCase()) {
+            case "add":
+                if (modifying == null) {
+                    modifying = new HashSet<>();
+                    tabCompletionSets.putIfAbsent(setName, modifying);
+                    modifying = tabCompletionSets.get(setName);
+                }
+
+                modifying.addAll(change);
+                return;
+            case "remove":
+                if (modifying == null) return;
+
+                modifying.removeAll(change);
+
+                if (modifying.isEmpty()) {
+                    tabCompletionSets.remove(setName);
+                }
+
+                return;
+            case "set":
+                modifying = new HashSet<>(change);
+
+                tabCompletionSets.put(setName, modifying);
+        }
     }
 
     private void addPermission(Permission permission) {
