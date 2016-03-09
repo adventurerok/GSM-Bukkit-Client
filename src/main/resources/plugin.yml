@@ -1,6 +1,7 @@
 name: "MSMClient"
 version: "${project.version}"
 main: "com.ithinkrok.msm.bukkit.MSMPlugin"
+depend: ["ProtocolLib"]
 author: "ithinkrok"
 
 commands:
