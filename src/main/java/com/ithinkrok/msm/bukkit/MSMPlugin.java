@@ -1,9 +1,11 @@
 package com.ithinkrok.msm.bukkit;
 
+import com.comphenix.protocol.ProtocolLibrary;
 import com.google.common.net.HostAndPort;
 import com.ithinkrok.msm.bukkit.protocol.ClientAPIProtocol;
 import com.ithinkrok.msm.bukkit.protocol.ClientAutoUpdateProtocol;
 import com.ithinkrok.msm.bukkit.protocol.ClientMinecraftRequestProtocol;
+import com.ithinkrok.msm.bukkit.tabcomplete.TabCompleteListener;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.impl.MSMClient;
 import com.ithinkrok.msm.common.MinecraftClientInfo;
@@ -19,6 +21,9 @@ import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by paul on 03/02/16.
@@ -27,6 +32,8 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
 
     private MSMClient client;
     private ClientAPIProtocol apiProtocol;
+
+    private final Map<String, Set<String>> tabCompletionSets = new ConcurrentHashMap<>();
 
     @Override
     public void onEnable() {
@@ -42,13 +49,15 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
         addDefaultProtocols();
 
         getServer().getScheduler().scheduleSyncDelayedTask(this, this::startMSMClient);
+
+        ProtocolLibrary.getProtocolManager().addPacketListener(new TabCompleteListener(this, tabCompletionSets));
     }
 
     private void addDefaultProtocols() {
         addProtocol("MSMAutoUpdate", new ClientAutoUpdateProtocol(this));
         addProtocol("MinecraftRequest", new ClientMinecraftRequestProtocol());
 
-        apiProtocol = new ClientAPIProtocol(this);
+        apiProtocol = new ClientAPIProtocol(this, tabCompletionSets);
         getServer().getPluginManager().registerEvents(apiProtocol, this);
         addProtocol("MSMAPI", apiProtocol);
     }

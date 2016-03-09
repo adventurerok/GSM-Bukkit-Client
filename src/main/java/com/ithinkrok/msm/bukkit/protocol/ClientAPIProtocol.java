@@ -39,8 +39,11 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     private Client client;
     private Channel channel;
 
-    public ClientAPIProtocol(Plugin plugin) {
+    private final Map<String, Set<String>> tabCompletionSets;
+
+    public ClientAPIProtocol(Plugin plugin, Map<String, Set<String>> tabCompletionSets) {
         this.plugin = plugin;
+        this.tabCompletionSets = tabCompletionSets;
 
         plugin.getServer().getScheduler()
                 .scheduleSyncRepeatingTask(plugin, resourceUsageTracker, 1, resourceUsageTracker.getTickInterval());
