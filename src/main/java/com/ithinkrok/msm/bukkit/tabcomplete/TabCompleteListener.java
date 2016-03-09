@@ -7,6 +7,7 @@ import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import com.ithinkrok.msm.common.command.CommandInfo;
+import org.apache.commons.lang.StringUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -104,26 +105,28 @@ public class TabCompleteListener extends PacketAdapter {
         for (Map.Entry<Pattern, List<String>> tabCompletion : command.getTabCompletion().entrySet()) {
             if (!tabCompletion.getKey().matcher(middle).matches()) continue;
 
-            for (String item : tabCompletion.getValue()) {
-                if (!item.startsWith("#")) {
-                    if (item.startsWith(end)) {
-                        text.add(item);
-                    }
-                    continue;
+            Collection<String> value = tabCompletion.getValue();
+            addTabSet(end, value, text);
+        }
+    }
+
+    private void addTabSet(String end, Collection<String> value, Set<String> text) {
+        for (String item : value) {
+            if (!item.startsWith("#")) {
+                if (StringUtils.startsWithIgnoreCase(item, end)) {
+                    text.add(item);
                 }
 
-                String setName = item.substring(1);
-                if (setName.isEmpty()) continue;
-
-                Set<String> set = tabCompletionSets.get(setName);
-                if (set == null) continue;
-
-                for (String setItem : set) {
-                    if (setItem.startsWith(end)) {
-                        text.add(setItem);
-                    }
-                }
+                continue;
             }
+
+            String setName = item.substring(1);
+            if (setName.isEmpty()) continue;
+
+            Set<String> set = tabCompletionSets.get(setName);
+            if (set == null) continue;
+
+            addTabSet(end, set, text);
         }
     }
 }
