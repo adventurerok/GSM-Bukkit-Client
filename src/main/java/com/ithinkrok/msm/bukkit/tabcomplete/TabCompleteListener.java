@@ -72,13 +72,16 @@ public class TabCompleteListener extends PacketAdapter {
 
                 StringBuilder middle = new StringBuilder();
 
-                for (int index = 1; index < parts.length - 1; ++index) {
+                int lastIndexPlusOne = message.endsWith(" ") ? parts.length : parts.length - 1;
+
+                for (int index = 1; index < lastIndexPlusOne; ++index) {
                     if (middle.length() > 0) middle.append(" ");
 
                     middle.append(parts[index]);
                 }
 
-                addCommandPartCompletions(command, middle.toString(), parts[parts.length - 1], text);
+                String end = message.endsWith(" ") ? "" : parts[parts.length - 1];
+                addCommandPartCompletions(command, middle.toString(), end, text);
             }
         }
 
