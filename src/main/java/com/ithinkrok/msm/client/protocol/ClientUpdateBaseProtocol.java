@@ -54,6 +54,7 @@ public abstract class ClientUpdateBaseProtocol implements ClientListener {
 
     @Override
     public void connectionClosed(Client client) {
+        incompleteResourceMap.clear();
     }
 
     @Override
