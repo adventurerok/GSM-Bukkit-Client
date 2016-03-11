@@ -17,8 +17,8 @@ public abstract class ClientUpdateBaseProtocol implements ClientListener {
 
     private final boolean primary;
     private final Map<String, IncompleteResource> incompleteResourceMap = new ConcurrentHashMap<>();
-    private Client client;
-    private Channel channel;
+
+    private Map<String, Instant> resourceVersions;
 
     public ClientUpdateBaseProtocol(boolean primary) {
         this.primary = primary;
@@ -26,17 +26,19 @@ public abstract class ClientUpdateBaseProtocol implements ClientListener {
 
     @Override
     public void connectionOpened(Client client, Channel channel) {
-        this.client = client;
-        this.channel = channel;
-
         if (!primary) return;
+
+        if(resourceVersions == null) {
+            resourceVersions = getResourceVersions();
+        }
+
         sendResourceInfo(channel);
     }
 
     private void sendResourceInfo(Channel channel) {
         Config versions = new MemoryConfig('\0');
 
-        for (Map.Entry<String, Instant> version : getResourceVersions().entrySet()) {
+        for (Map.Entry<String, Instant> version : resourceVersions.entrySet()) {
             versions.set(version.getKey(), version.getValue().toEpochMilli());
         }
 
@@ -52,8 +54,6 @@ public abstract class ClientUpdateBaseProtocol implements ClientListener {
 
     @Override
     public void connectionClosed(Client client) {
-        this.client = null;
-        this.channel = null;
     }
 
     @Override
@@ -75,6 +75,8 @@ public abstract class ClientUpdateBaseProtocol implements ClientListener {
         int index = payload.getInt("index");
         int length = payload.getInt("length");
 
+        Instant version = Instant.ofEpochMilli(payload.getLong("version"));
+
         if (index != 0 && bytes.length != length) {
             IncompleteResource resource = incompleteResourceMap.get(resourceName);
             if (resource == null) {
@@ -89,8 +91,10 @@ public abstract class ClientUpdateBaseProtocol implements ClientListener {
 
             incompleteResourceMap.remove(resourceName);
 
+            resourceVersions.put(resourceName, version);
             updateResource(resourceName, resource.bytes);
         } else {
+            resourceVersions.put(resourceName, version);
             updateResource(resourceName, bytes);
         }
     }
