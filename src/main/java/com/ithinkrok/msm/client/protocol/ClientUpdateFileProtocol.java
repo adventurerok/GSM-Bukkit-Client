@@ -12,7 +12,7 @@ import java.util.Set;
 /**
  * Created by paul on 11/03/16.
  */
-public abstract class ClientUpdateFileProtocol extends ClientUpdateBaseProtocol {
+public class ClientUpdateFileProtocol extends ClientUpdateBaseProtocol {
 
     protected final Path basePath;
 
