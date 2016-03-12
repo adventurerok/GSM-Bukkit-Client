@@ -43,14 +43,18 @@ public class ClientUpdateFileProtocol extends ClientUpdateBaseProtocol {
     }
 
     @Override
-    protected void updateResource(String name, byte[] update) {
+    protected boolean updateResource(String name, byte[] update) {
         Path resourcePath = getResourcePath(name);
+        if(resourcePath == null) return false;
+
         Path resourceDirectory = resourcePath.getParent();
 
-        if (!ensureDirectoryExists(resourceDirectory)) return;
-        if (!writeResourceUpdate(resourcePath, update)) return;
+        if (!ensureDirectoryExists(resourceDirectory)) return false;
+        if (!writeResourceUpdate(resourcePath, update)) return false;
 
         System.out.println("Updated resource at" + resourcePath);
+
+        return true;
     }
 
     private boolean writeResourceUpdate(Path resourcePath, byte[] update) {
@@ -77,7 +81,7 @@ public class ClientUpdateFileProtocol extends ClientUpdateBaseProtocol {
         return true;
     }
 
-    private Path getResourcePath(String name) {
+    protected Path getResourcePath(String name) {
         return basePath.resolve(name);
     }
 

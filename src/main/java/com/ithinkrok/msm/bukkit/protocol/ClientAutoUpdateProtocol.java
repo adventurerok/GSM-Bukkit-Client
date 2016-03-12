@@ -1,11 +1,8 @@
 package com.ithinkrok.msm.bukkit.protocol;
 
-import com.ithinkrok.msm.client.Client;
-import com.ithinkrok.msm.client.ClientListener;
-import com.ithinkrok.msm.common.Channel;
+import com.ithinkrok.msm.client.protocol.ClientUpdateFileProtocol;
 import com.ithinkrok.util.FIleUtil;
 import com.ithinkrok.util.config.Config;
-import com.ithinkrok.util.config.InvalidConfigException;
 import com.ithinkrok.util.config.MemoryConfig;
 import com.ithinkrok.util.config.YamlConfigIO;
 import org.bukkit.ChatColor;
@@ -14,17 +11,13 @@ import org.bukkit.plugin.Plugin;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by paul on 04/02/16.
  */
-public class ClientAutoUpdateProtocol implements ClientListener {
-
-    private final Path pluginDirectory;
+public class ClientAutoUpdateProtocol extends ClientUpdateFileProtocol {
 
     private final Map<String, Path> pluginNameToPathMap = new ConcurrentHashMap<>();
 
@@ -37,107 +30,70 @@ public class ClientAutoUpdateProtocol implements ClientListener {
     }
 
     public ClientAutoUpdateProtocol(Plugin plugin, Path pluginDirectory) {
+        super(true, pluginDirectory);
+
         this.plugin = plugin;
-        this.pluginDirectory = pluginDirectory;
     }
 
     @Override
-    public void connectionOpened(Client client, Channel channel) {
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+    protected String getResourceName(Path path) {
+        if (!path.getFileName().toString().toLowerCase().endsWith(".jar")) {
+            return null;
+        }
 
-            try (DirectoryStream<Path> pluginPaths = Files.newDirectoryStream(pluginDirectory, "**.jar")) {
-                Config payload = new MemoryConfig();
+        try (FileSystem jarFile = FIleUtil.createZipFileSystem(path)) {
 
-                Collection<Config> pluginInfoList = new ArrayList<>();
+            Path pluginYmlPath = jarFile.getPath("/plugin.yml");
 
-                for (Path pluginPath : pluginPaths) {
-                    try {
-                        Config pluginInfo = loadPluginInfo(pluginPath);
-                        if (pluginInfo == null) continue;
+            if (!Files.exists(pluginYmlPath)) return null;
 
-                        pluginInfoList.add(pluginInfo);
-                    } catch (InvalidConfigException e) {
-                        System.err.println("Plugin " + pluginPath + " has an invalid configuration");
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        System.err.println("IOException while polling plugin version: " + pluginPath);
-                        e.printStackTrace();
-                    }
-                }
+            Config pluginYml = YamlConfigIO.loadToConfig(pluginYmlPath, new MemoryConfig('/'));
 
-                payload.set("plugins", pluginInfoList);
+            String name = pluginYml.getString("name");
+            if (name == null) return null;
 
-                //Mode = "PluginInfo", send info about all available plugins
-                payload.set("mode", "PluginInfo");
+            //Put the plugin name -> path combination in the lookup.
+            pluginNameToPathMap.put(name, path);
 
-                channel.write(payload);
-            } catch (IOException e) {
-                System.err.println("Failed to iterate over plugin directory: " + pluginDirectory);
-                e.printStackTrace();
-            }
-
-        });
-    }
-
-    @Override
-    public void connectionClosed(Client client) {
-
-    }
-
-    @Override
-    public void packetRecieved(Client client, Channel channel, Config payload) {
-
-        String mode = payload.getString("mode");
-        if (mode == null) return;
-
-        switch (mode) {
-            case "PluginInstall":
-                handlePluginInstall(payload);
-                break;
+            return name;
+        } catch (IOException ignored) {
+            return null;
         }
     }
 
-    private void handlePluginInstall(Config payload) {
-        String name = payload.getString("name");
+    @Override
+    protected boolean updateResource(String name, byte[] update) {
+        if (!super.updateResource(name, update)) return false;
 
-        byte[] updateBytes = (byte[]) payload.get("bytes");
+        scheduleRestart();
+        return true;
+    }
 
+    @Override
+    protected Path getResourcePath(String name) {
         Path oldPath = pluginNameToPathMap.get(name);
         Path savePath;
 
         if (oldPath != null) {
-            Path updatesDirectory = pluginDirectory.resolve("update");
+            Path updatesDirectory = basePath.resolve("update");
             if (!Files.exists(updatesDirectory)) {
                 try {
                     Files.createDirectory(updatesDirectory);
                 } catch (IOException e) {
                     System.err.println("Failed to create \"plugins/updates\" directory");
                     e.printStackTrace();
-                    return;
+                    return null;
                 }
             }
 
             savePath = updatesDirectory.resolve(oldPath.getFileName());
-        } else savePath = pluginDirectory.resolve(name + ".jar");
+        } else savePath = basePath.resolve(name + ".jar");
 
-        //Whether the packet is the first of this file or not
-        boolean append = payload.getBoolean("append", false);
-
-        if (!append) System.out.println("Updating plugin \"" + name + "\"");
-
-        try {
-            if (append) Files.write(savePath, updateBytes, StandardOpenOption.APPEND);
-            else Files.write(savePath, updateBytes);
-        } catch (IOException e) {
-            System.out.println("Error while saving plugin update for plugin: " + name);
-            e.printStackTrace();
-        }
-
-        scheduleRestart();
+        return savePath;
     }
 
     public void scheduleRestart() {
-        if(restarting) return;
+        if (restarting) return;
         restarting = true;
 
         plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
@@ -155,32 +111,5 @@ public class ClientAutoUpdateProtocol implements ClientListener {
         }, 20, 1200);
     }
 
-    private Config loadPluginInfo(Path pluginPath) throws IOException {
-        Config result = new MemoryConfig();
-
-        try (FileSystem jarFile = FIleUtil.createZipFileSystem(pluginPath)) {
-
-            Path pluginYmlPath = jarFile.getPath("/plugin.yml");
-
-            if (!Files.exists(pluginYmlPath)) return null;
-
-            Config pluginYml = YamlConfigIO.loadToConfig(pluginYmlPath, new MemoryConfig('/'));
-
-            String name = pluginYml.getString("name");
-            if (name == null) return null;
-
-            result.set("name", name);
-
-            //Put the plugin name -> path combination in the lookup.
-            pluginNameToPathMap.put(name, pluginPath);
-
-            if (pluginYml.contains("version")) result.set("version", pluginYml.getString("version"));
-        }
-
-        FileTime dateModified = Files.getLastModifiedTime(pluginPath);
-        result.set("modified", dateModified.toMillis());
-
-        return result;
-    }
 
 }

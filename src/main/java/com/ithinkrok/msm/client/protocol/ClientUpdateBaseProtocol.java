@@ -100,7 +100,7 @@ public abstract class ClientUpdateBaseProtocol implements ClientListener {
         }
     }
 
-    protected abstract void updateResource(String name, byte[] update);
+    protected abstract boolean updateResource(String name, byte[] update);
 
     private static class IncompleteResource {
         byte[] bytes;
