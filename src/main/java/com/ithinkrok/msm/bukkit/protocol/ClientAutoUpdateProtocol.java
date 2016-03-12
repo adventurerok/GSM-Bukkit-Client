@@ -38,7 +38,7 @@ public class ClientAutoUpdateProtocol extends ClientUpdateFileProtocol {
     @Override
     protected String getResourceName(Path path) {
         if (!path.getFileName().toString().toLowerCase().endsWith(".jar")) {
-            return null;
+            return "other:" + super.getResourceName(path);
         }
 
         try (FileSystem jarFile = FIleUtil.createZipFileSystem(path)) {
@@ -55,7 +55,7 @@ public class ClientAutoUpdateProtocol extends ClientUpdateFileProtocol {
             //Put the plugin name -> path combination in the lookup.
             pluginNameToPathMap.put(name, path);
 
-            return name;
+            return "plugin:" + name;
         } catch (IOException ignored) {
             return null;
         }
@@ -71,6 +71,11 @@ public class ClientAutoUpdateProtocol extends ClientUpdateFileProtocol {
 
     @Override
     protected Path getResourcePath(String name) {
+        if(name.startsWith("other:")) return super.getResourcePath(name.substring(6));
+        else if(!name.startsWith("plugin:")) return null;
+
+        name = name.substring(7);
+
         Path oldPath = pluginNameToPathMap.get(name);
         Path savePath;
 
