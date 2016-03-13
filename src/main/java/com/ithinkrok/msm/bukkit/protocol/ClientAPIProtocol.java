@@ -434,6 +434,24 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         channel.write(payload);
     }
 
+    public void sendLogErrorPacket(Throwable exception) {
+        List<String> errorLog = new ArrayList<>();
+
+        errorLog.add(exception.getClass().toString());
+        errorLog.add(exception.getMessage());
+
+        for(StackTraceElement element : exception.getStackTrace()) {
+            errorLog.add(element.toString());
+        }
+
+        Config payload = new MemoryConfig();
+        payload.set("mode", "LogError");
+
+        payload.set("error", errorLog);
+
+        channel.write(payload);
+    }
+
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         if (channel == null) return;
