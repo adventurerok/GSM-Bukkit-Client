@@ -23,8 +23,8 @@
     <dependencies>
 
         <dependency>
-            <groupId>com.ithinkrok</groupId>
-            <artifactId>MSMCommon</artifactId>
+            <groupId>com.ithinkrok.gsm</groupId>
+            <artifactId>gsm-common</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
