@@ -9,8 +9,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.plugin.Plugin;
 
 import java.io.IOException;
-import java.nio.file.*;
-import java.nio.file.attribute.FileTime;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
