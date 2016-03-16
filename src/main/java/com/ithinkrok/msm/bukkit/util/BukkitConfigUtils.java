@@ -81,7 +81,7 @@ public class BukkitConfigUtils {
             }
 
             if(vector != null) {
-                list.add(vector);
+                result.add(vector);
             }
         }
 
