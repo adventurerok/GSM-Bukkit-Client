@@ -25,16 +25,19 @@ public class ClientAutoUpdateProtocol extends ClientUpdateFileProtocol {
 
     private final Plugin plugin;
 
+    private final ClientAPIProtocol apiProtocol;
+
     private boolean restarting = false;
 
-    public ClientAutoUpdateProtocol(Plugin plugin) {
-        this(plugin, Paths.get("plugins"));
+    public ClientAutoUpdateProtocol(Plugin plugin, ClientAPIProtocol apiProtocol) {
+        this(plugin, Paths.get("plugins"), apiProtocol);
     }
 
-    public ClientAutoUpdateProtocol(Plugin plugin, Path pluginDirectory) {
+    public ClientAutoUpdateProtocol(Plugin plugin, Path pluginDirectory, ClientAPIProtocol apiProtocol) {
         super(true, pluginDirectory);
 
         this.plugin = plugin;
+        this.apiProtocol = apiProtocol;
     }
 
     @Override
@@ -100,22 +103,7 @@ public class ClientAutoUpdateProtocol extends ClientUpdateFileProtocol {
     }
 
     public void scheduleRestart() {
-        if (restarting) return;
-        restarting = true;
-
-        plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
-            if (!plugin.getServer().getOnlinePlayers().isEmpty()) return;
-
-            plugin.getServer()
-                    .broadcastMessage(ChatColor.RED.toString() + ChatColor.BOLD.toString() + "Server restarting now" +
-                            " for plugin" +
-                            " updates");
-
-            plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin,
-                    () -> plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), "restart"), 100);
-
-
-        }, 20, 1200);
+        apiProtocol.scheduleRestart(20, 0);
     }
 
 

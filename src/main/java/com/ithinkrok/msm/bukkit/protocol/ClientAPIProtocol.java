@@ -14,6 +14,7 @@ import com.ithinkrok.util.config.Config;
 import com.ithinkrok.util.config.MemoryConfig;
 import org.bukkit.BanEntry;
 import org.bukkit.BanList;
+import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -42,7 +43,11 @@ public class ClientAPIProtocol implements ClientListener, Listener {
     private Client client;
     private Channel channel;
 
-    public ClientAPIProtocol(Plugin plugin, Map<String, CommandInfo> commandMap, Map<String, Set<String>> tabCompletionSets) {
+    private int maxRestartPlayers = 0;
+    private boolean restartScheduled = false;
+
+    public ClientAPIProtocol(Plugin plugin, Map<String, CommandInfo> commandMap,
+                             Map<String, Set<String>> tabCompletionSets) {
         this.plugin = plugin;
         this.commandMap = commandMap;
         this.tabCompletionSets = tabCompletionSets;
@@ -133,17 +138,20 @@ public class ClientAPIProtocol implements ClientListener, Listener {
                 return;
             case "TabSets":
                 handleTabSets(payload);
+                return;
+            case "Restart":
+                handleRestart(payload);
         }
     }
 
-    private void handleTabSets(Config payload) {
-        Config tabSets = payload.getConfigOrEmpty("tab_sets");
+    private void handleRestart(Config payload) {
+        int delayMs = payload.getInt("delay_ms");
 
-        for(String setName : tabSets.getKeys(false)) {
-            Set<String> tabSet = new HashSet<>(tabSets.getStringList(setName));
+        int delayTicks = delayMs / 50;
 
-            tabCompletionSets.put(setName, tabSet);
-        }
+        int maxRestartPlayers = payload.getInt("max_players");
+
+        scheduleRestart(delayTicks, maxRestartPlayers);
     }
 
     private void handleBroadcast(Config payload) {
@@ -348,6 +356,16 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         }
     }
 
+    private void handleTabSets(Config payload) {
+        Config tabSets = payload.getConfigOrEmpty("tab_sets");
+
+        for (String setName : tabSets.getKeys(false)) {
+            Set<String> tabSet = new HashSet<>(tabSets.getStringList(setName));
+
+            tabCompletionSets.put(setName, tabSet);
+        }
+    }
+
     private void addPermission(Permission permission) {
         Permission old = plugin.getServer().getPluginManager().getPermission(permission.getName());
 
@@ -455,6 +473,38 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         payload.set("mode", "PlayerQuit");
 
         channel.write(payload);
+    }
+
+    public void scheduleRestart(int delayTicks, int maxRestartPlayers) {
+        if (this.maxRestartPlayers < maxRestartPlayers) {
+            this.maxRestartPlayers = maxRestartPlayers;
+        }
+
+        if (restartScheduled) return;
+        restartScheduled = true;
+
+        runOnMainThread(() -> {
+            plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
+                if (plugin.getServer().getOnlinePlayers().size() > maxRestartPlayers) return;
+
+                plugin.getServer().broadcastMessage(
+                        ChatColor.RED.toString() + ChatColor.BOLD.toString() + "Server restarting now");
+
+                plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> plugin.getServer()
+                        .dispatchCommand(plugin.getServer().getConsoleSender(), "restart"), 100);
+
+
+            }, delayTicks, 20);
+        });
+
+
+        //Alert the controller of the scheduled restart
+        Config payload = new MemoryConfig();
+        payload.set("mode", "RestartScheduled");
+        payload.set("delay_ms", delayTicks * 50);
+        payload.set("max_players", maxRestartPlayers);
+        channel.write(payload);
+
     }
 
 }
