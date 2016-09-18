@@ -507,4 +507,7 @@ public class ClientAPIProtocol implements ClientListener, Listener {
 
     }
 
+    public boolean isRestartScheduled() {
+        return restartScheduled;
+    }
 }
