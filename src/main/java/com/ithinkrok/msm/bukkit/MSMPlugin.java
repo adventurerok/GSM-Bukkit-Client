@@ -32,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
 
     private MSMClient client;
-    private ClientAPIProtocol apiProtocol;
+    private static ClientAPIProtocol apiProtocol;
 
     private final Map<String, CommandInfo> commandMap = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> tabCompletionSets = new ConcurrentHashMap<>();
@@ -83,6 +83,10 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
 
         client.start();
 
+    }
+
+    public static ClientAPIProtocol getApiProtocol() {
+        return apiProtocol;
     }
 
     public static void addProtocol(String protocolName, ClientListener protocolListener) {
