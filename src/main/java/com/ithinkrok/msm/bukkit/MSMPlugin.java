@@ -57,7 +57,7 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
     }
 
     private void addDefaultProtocols() {
-        addProtocol("BukkitPluginUpdate", new ClientAutoUpdateProtocol(this, apiProtocol));
+        addProtocol("BukkitPluginUpdate", new ClientAutoUpdateProtocol(apiProtocol));
         addProtocol("MinecraftRequest", new ClientMinecraftRequestProtocol());
 
         apiProtocol = new ClientAPIProtocol(this, commandMap, tabCompletionSets);

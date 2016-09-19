@@ -144,16 +144,6 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         }
     }
 
-    private void handleRestart(Config payload) {
-        int delayMs = payload.getInt("delay_ms");
-
-        int delayTicks = delayMs / 50;
-
-        int maxRestartPlayers = payload.getInt("max_players");
-
-        scheduleRestart(delayTicks, maxRestartPlayers);
-    }
-
     private void handleBroadcast(Config payload) {
         String message = StringUtils.convertAmpersandToSelectionCharacter(payload.getString("message"));
 
@@ -366,6 +356,16 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         }
     }
 
+    private void handleRestart(Config payload) {
+        int delayMs = payload.getInt("delay_ms");
+
+        int delayTicks = delayMs / 50;
+
+        int maxRestartPlayers = payload.getInt("max_players");
+
+        scheduleRestart(delayTicks, maxRestartPlayers);
+    }
+
     private void addPermission(Permission permission) {
         Permission old = plugin.getServer().getPluginManager().getPermission(permission.getName());
 
@@ -381,6 +381,36 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         Map<String, Boolean> oldChildren = old.getChildren();
         oldChildren.clear();
         oldChildren.putAll(permission.getChildren());
+    }
+
+    public void scheduleRestart(int delayTicks, int maxRestartPlayers) {
+        if (this.maxRestartPlayers < maxRestartPlayers) {
+            this.maxRestartPlayers = maxRestartPlayers;
+        }
+
+        if (restartScheduled) return;
+        restartScheduled = true;
+
+        plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
+            if (plugin.getServer().getOnlinePlayers().size() > this.maxRestartPlayers) return;
+
+            plugin.getServer()
+                    .broadcastMessage(ChatColor.RED.toString() + ChatColor.BOLD.toString() + "Server restarting now");
+
+            plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> plugin.getServer()
+                    .dispatchCommand(plugin.getServer().getConsoleSender(), "restart"), 100);
+
+
+        }, delayTicks, 20);
+
+
+        //Alert the controller of the scheduled restart
+        Config payload = new MemoryConfig();
+        payload.set("mode", "RestartScheduled");
+        payload.set("delay_ms", delayTicks * 50);
+        payload.set("max_players", maxRestartPlayers);
+        channel.write(payload);
+
     }
 
     private void runOnMainThread(Runnable runnable) {
@@ -473,38 +503,6 @@ public class ClientAPIProtocol implements ClientListener, Listener {
         payload.set("mode", "PlayerQuit");
 
         channel.write(payload);
-    }
-
-    public void scheduleRestart(int delayTicks, int maxRestartPlayers) {
-        if (this.maxRestartPlayers < maxRestartPlayers) {
-            this.maxRestartPlayers = maxRestartPlayers;
-        }
-
-        if (restartScheduled) return;
-        restartScheduled = true;
-
-        runOnMainThread(() -> {
-            plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
-                if (plugin.getServer().getOnlinePlayers().size() > maxRestartPlayers) return;
-
-                plugin.getServer().broadcastMessage(
-                        ChatColor.RED.toString() + ChatColor.BOLD.toString() + "Server restarting now");
-
-                plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> plugin.getServer()
-                        .dispatchCommand(plugin.getServer().getConsoleSender(), "restart"), 100);
-
-
-            }, delayTicks, 20);
-        });
-
-
-        //Alert the controller of the scheduled restart
-        Config payload = new MemoryConfig();
-        payload.set("mode", "RestartScheduled");
-        payload.set("delay_ms", delayTicks * 50);
-        payload.set("max_players", maxRestartPlayers);
-        channel.write(payload);
-
     }
 
     public boolean isRestartScheduled() {

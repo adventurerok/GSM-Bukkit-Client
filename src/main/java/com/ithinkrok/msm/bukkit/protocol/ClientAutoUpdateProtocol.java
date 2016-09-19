@@ -5,8 +5,6 @@ import com.ithinkrok.util.FIleUtil;
 import com.ithinkrok.util.config.Config;
 import com.ithinkrok.util.config.MemoryConfig;
 import com.ithinkrok.util.config.YamlConfigIO;
-import org.bukkit.ChatColor;
-import org.bukkit.plugin.Plugin;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -23,20 +21,15 @@ public class ClientAutoUpdateProtocol extends ClientUpdateFileProtocol {
 
     private final Map<String, Path> pluginNameToPathMap = new ConcurrentHashMap<>();
 
-    private final Plugin plugin;
-
     private final ClientAPIProtocol apiProtocol;
 
-    private boolean restarting = false;
-
-    public ClientAutoUpdateProtocol(Plugin plugin, ClientAPIProtocol apiProtocol) {
-        this(plugin, Paths.get("plugins"), apiProtocol);
+    public ClientAutoUpdateProtocol(ClientAPIProtocol apiProtocol) {
+        this(Paths.get("plugins"), apiProtocol);
     }
 
-    public ClientAutoUpdateProtocol(Plugin plugin, Path pluginDirectory, ClientAPIProtocol apiProtocol) {
+    public ClientAutoUpdateProtocol(Path pluginDirectory, ClientAPIProtocol apiProtocol) {
         super(true, pluginDirectory);
 
-        this.plugin = plugin;
         this.apiProtocol = apiProtocol;
     }
 
