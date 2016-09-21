@@ -51,6 +51,10 @@ public class MSMCommandSender implements CommandSender {
                 payload.set("mode", "MinecraftConsoleMessage");
                 payload.set("server", sender.getString("name"));
                 break;
+            case "external":
+                payload.set("mode", "ExternalMessage");
+                payload.set("name", sender.getString("name"));
+                break;
         }
 
         channel.write(payload);
