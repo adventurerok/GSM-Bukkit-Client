@@ -23,6 +23,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.commons.lang.Validate;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -48,10 +49,21 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
 
     private final byte[] password;
 
-    public MSMClient(HostAndPort address, MinecraftClientInfo serverInfo, String password) {
-        this.address = address;
+    private final String serverDownScript;
+
+    private static HostAndPort getAddressFromConfig(Config config) {
+        String hostname = config.getString("hostname");
+        int port = config.getInt("port", 30824);
+
+        return HostAndPort.fromParts(hostname, port);
+    }
+
+    public MSMClient(Config config, MinecraftClientInfo serverInfo) {
+        this.address = getAddressFromConfig(config);
         this.serverInfo = serverInfo;
-        this.password = password.getBytes(Charsets.UTF_8);
+        this.password = config.getString("password").getBytes(Charsets.UTF_8);
+
+        this.serverDownScript = config.getString("down_script", null);
 
         reset();
 
@@ -201,6 +213,8 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
 
         ++connectFails;
 
+        callServerDownScript();
+
         if ((connectFails % 10) == 0) {
             System.out.println("Failed to reconnect to MSM Server after " + connectFails + " attempts");
         }
@@ -209,6 +223,20 @@ public class MSMClient extends ChannelInboundHandlerAdapter implements Client, C
         if (connectFails == 1) waitTime = 5L + random.nextInt(15);
 
         eventLoop.schedule(this::start, waitTime, TimeUnit.SECONDS);
+    }
+
+    private void callServerDownScript() {
+        if(serverDownScript == null || serverDownScript.isEmpty()) return;
+
+        ProcessBuilder pb = new ProcessBuilder(serverDownScript, Integer.toString(connectFails));
+        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+
+        try{
+            pb.start();
+        } catch (IOException e) {
+            System.err.println("Failed to call the server down script:");
+            e.printStackTrace();
+        }
     }
 
     @Override

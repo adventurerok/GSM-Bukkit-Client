@@ -6,11 +6,13 @@ import com.ithinkrok.msm.bukkit.protocol.ClientAPIProtocol;
 import com.ithinkrok.msm.bukkit.protocol.ClientAutoUpdateProtocol;
 import com.ithinkrok.msm.bukkit.protocol.ClientMinecraftRequestProtocol;
 import com.ithinkrok.msm.bukkit.tabcomplete.TabCompleteListener;
+import com.ithinkrok.msm.bukkit.util.BukkitConfig;
 import com.ithinkrok.msm.client.ClientListener;
 import com.ithinkrok.msm.client.impl.MSMClient;
 import com.ithinkrok.msm.common.MinecraftClientInfo;
 import com.ithinkrok.msm.common.MinecraftClientType;
 import com.ithinkrok.msm.common.command.CommandInfo;
+import com.ithinkrok.util.config.Config;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -66,20 +68,16 @@ public class MSMPlugin extends JavaPlugin implements PluginMessageListener {
     }
 
     private void startMSMClient() {
-        ConfigurationSection config = getConfig();
-
-        String hostname = config.getString("hostname");
-        int port = config.getInt("port", 30824);
-
-        HostAndPort address = HostAndPort.fromParts(hostname, port);
+        Config config = new BukkitConfig(getConfig());
 
         String serverName = config.getString("this_server.name");
         boolean hasBungee = config.getBoolean("this_server.has_bungee");
 
         MinecraftClientInfo serverInfo = getServerInfo(serverName, hasBungee);
 
-        getLogger().info("Connecting to MSM Server at " + address);
-        client = new MSMClient(address, serverInfo, config.getString("password"));
+        getLogger().info("Connecting to MSM Server");
+
+        client = new MSMClient(config, serverInfo);
 
         client.start();
 
